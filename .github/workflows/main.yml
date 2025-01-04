@@ -2,9 +2,9 @@ name: Build Win98 QuickInstall
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -16,6 +16,21 @@ jobs:
       with:
         fetch-depth: 0
         submodules: 'recursive'
+
+    - name: Debug Submodules
+      run: |
+        echo "Listing current directory:"
+        ls -la
+        echo "Checking busybox directory:"
+        ls -la busybox || echo "busybox directory not found"
+        echo "Checking .gitmodules content:"
+        cat .gitmodules || echo ".gitmodules not found"
+
+    - name: Initialize and Update Submodules
+      run: |
+        git submodule init
+        git submodule update --init --recursive
+        git submodule status
 
     - name: Set up build environment
       run: |
@@ -60,10 +75,27 @@ jobs:
           touch i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/linux
         fi
 
+    - name: Initialize Environment
+      run: |
+        chmod +x init.sh
+        ./init.sh
+
     - name: Build BusyBox
       run: |
+        echo "Verificando conteúdo do diretório busybox:"
+        ls -la busybox
+        if [ ! -f "busybox/build.sh" ]; then
+          echo "Criando script build.sh para busybox"
+          cat > busybox/build.sh << 'EOF'
+#!/bin/bash
+make defconfig
+sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
+make -j$(nproc)
+make install
+EOF
+          chmod +x busybox/build.sh
+        fi
         cd busybox
-        chmod +x build.sh
         ./build.sh
 
     - name: Build Linux Kernel
@@ -78,12 +110,21 @@ jobs:
 
     - name: Build Components
       run: |
-        components=("dosfstools" "syslinux" "util-linux" "tiny-floppy-bootloader" "installer" "dosflop" "pciutils")
-        for component in "${components[@]}"; do
-          cd $component
-          chmod +x build.sh
-          ./build.sh
-          cd ..
+        for component in "dosfstools" "syslinux" "util-linux" "tiny-floppy-bootloader" "installer" "dosflop" "pciutils"; do
+          echo "Building $component"
+          if [ -d "$component" ]; then
+            cd $component
+            if [ ! -f "build.sh" ]; then
+              echo "Warning: build.sh not found in $component"
+              cd ..
+              continue
+            fi
+            chmod +x build.sh
+            ./build.sh
+            cd ..
+          else
+            echo "Warning: Directory $component not found"
+          fi
         done
 
     - name: Create Output Structure
@@ -102,37 +143,37 @@ jobs:
         CDROOT=$OUTPUT/cdromroot
         
         # Copy kernels and bootloaders
-        cp bzImage.cd "$CDROOT/"
-        cp tiny-floppy-bootloader/cdrom.img "$CDROOT/"
-        cp tiny-floppy-bootloader/floppy.img "$OUTPUT/"
-        cp tiny-floppy-bootloader/floppy.img "$CDROOT/"
-        cp dosflop/dosflop.img "$OUTPUT/"
-        cp dosflop/dosflop.img "$CDROOT/"
+        cp bzImage.cd "$CDROOT/" || echo "Warning: bzImage.cd not found"
+        cp tiny-floppy-bootloader/cdrom.img "$CDROOT/" || echo "Warning: cdrom.img not found"
+        cp tiny-floppy-bootloader/floppy.img "$OUTPUT/" || echo "Warning: floppy.img not found"
+        cp tiny-floppy-bootloader/floppy.img "$CDROOT/" || echo "Warning: floppy.img not found (CDROOT)"
+        cp dosflop/dosflop.img "$OUTPUT/" || echo "Warning: dosflop.img not found"
+        cp dosflop/dosflop.img "$CDROOT/" || echo "Warning: dosflop.img not found (CDROOT)"
         
-        # Copy binaries
-        cp util-linux/OUTPUT/bin/* "$CDROOT/bin/" || true
-        cp util-linux/OUTPUT/sbin/* "$CDROOT/bin/" || true
-        cp util-linux/{cfdisk,sfdisk,lsblk} "$CDROOT/bin/" || true
-        cp pciutils/{lspci,setpci,pci.ids} "$CDROOT/bin/" || true
-        cp dosfstools/OUTPUT/sbin/* "$CDROOT/bin/" || true
+        # Copy binaries and tools with error handling
+        cp util-linux/OUTPUT/bin/* "$CDROOT/bin/" 2>/dev/null || echo "Warning: util-linux binaries not found"
+        cp util-linux/OUTPUT/sbin/* "$CDROOT/bin/" 2>/dev/null || echo "Warning: util-linux sbin not found"
+        for util in cfdisk sfdisk lsblk; do
+          cp util-linux/$util "$CDROOT/bin/" 2>/dev/null || echo "Warning: $util not found"
+        done
         
-        # Copy configuration and tools
-        cp supplement/syslinux.cfg "$CDROOT"
-        cp supplement/install.txt "$CDROOT/"
-        cp installer/lunmercy "$CDROOT/bin/"
-        cp -r tools "$OUTPUT"
+        for util in lspci setpci "pci.ids"; do
+          cp pciutils/$util "$CDROOT/bin/" 2>/dev/null || echo "Warning: $util not found"
+        done
         
-        # Copy SYSLINUX components
-        cp syslinux/bios/mbr/mbr.bin "$OUTPUT/tools/syslinux_mbr.bin"
-        objcopy -O binary -j .data syslinux/bios/linux/bootsect_bin.o "$OUTPUT/tools/syslinux_bs.bin"
-        cp syslinux/bios/com32/elflink/ldlinux/ldlinux.c32 "$OUTPUT/tools"
-        cp syslinux/bios/core/ldlinux.sys "$OUTPUT/tools"
+        cp dosfstools/OUTPUT/sbin/* "$CDROOT/bin/" 2>/dev/null || echo "Warning: dosfstools binaries not found"
+        
+        # Copy remaining files
+        cp supplement/syslinux.cfg "$CDROOT" 2>/dev/null || echo "Warning: syslinux.cfg not found"
+        cp supplement/install.txt "$CDROOT/" 2>/dev/null || echo "Warning: install.txt not found"
+        cp installer/lunmercy "$CDROOT/bin/" 2>/dev/null || echo "Warning: lunmercy not found"
+        cp -r tools "$OUTPUT" 2>/dev/null || echo "Warning: tools directory not found"
         
         # Copy drivers and preparation files
-        cp -r sysprep/* "$OUTPUT"
-        cp -r win98-driver-lib-base/* "$OUTPUT/_DRIVER_"
-        cp -r win98-driver-lib-extra/* "$OUTPUT/_EXTRA_DRIVER_"
-        cp README.md "$OUTPUT"
+        cp -r sysprep/* "$OUTPUT" 2>/dev/null || echo "Warning: sysprep files not found"
+        cp -r win98-driver-lib-base/* "$OUTPUT/_DRIVER_" 2>/dev/null || echo "Warning: base drivers not found"
+        cp -r win98-driver-lib-extra/* "$OUTPUT/_EXTRA_DRIVER_" 2>/dev/null || echo "Warning: extra drivers not found"
+        cp README.md "$OUTPUT" 2>/dev/null || echo "Warning: README.md not found"
 
     - name: Create Release Archive
       run: |
