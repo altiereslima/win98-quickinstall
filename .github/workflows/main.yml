@@ -3,21 +3,28 @@ name: Build Installer Only
 on:
   push:
     branches:
-      - master  # Altere para o nome da sua branch principal
+      - master
   pull_request:
     branches:
-      - master  # Altere para o nome da sua branch principal
-  workflow_dispatch:  # Permite acionar o workflow manualmente
+      - master
+  workflow_dispatch:
 
 jobs:
   build-installer:
-    runs-on: ubuntu-latest  # Usa a última versão do Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
         submodules: false  # Desativa o checkout recursivo de submódulos
+
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
 
     - name: Clone necessary submodules manually
       run: |
