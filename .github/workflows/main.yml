@@ -3,10 +3,10 @@ name: Build win98-quickinstall and Generate Artifact
 on:
   push:
     branches:
-      - master  # Altere para o nome da sua branch principal
+      - master  # Branch principal
   pull_request:
     branches:
-      - master  # Altere para o nome da sua branch principal
+      - master  # Branch principal
   workflow_dispatch:  # Permite acionar o workflow manualmente
 
 jobs:
@@ -50,6 +50,12 @@ jobs:
         # Lista os arquivos encontrados (para depuração)
         echo "Artefatos encontrados:"
         ls -R artifacts/
+
+        # Verifica se há artefatos
+        if [ -z "$(ls -A artifacts/)" ]; then
+          echo "Nenhum artefato encontrado!"
+          exit 1  # Falha no workflow se nenhum artefato for encontrado
+        fi
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
