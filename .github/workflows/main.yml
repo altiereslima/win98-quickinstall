@@ -1,0 +1,46 @@
+name: Build win98-quickinstall and Generate Artifact
+
+on:
+  push:
+    branches:
+      - master  # Altere para o nome da sua branch principal
+  pull_request:
+    branches:
+      - master  # Altere para o nome da sua branch principal
+  workflow_dispatch:  # Permite acionar o workflow manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Usa a última versão do Ubuntu
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'  # Importante para garantir que os submodules sejam clonados
+
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git wget bc bison flex libssl-dev libncurses-dev
+
+    - name: Build the project
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Find and archive build artifacts
+      run: |
+        # Procura por arquivos de saída comuns
+        mkdir -p artifacts
+        find . -type f \( -name "*.iso" -o -name "*.img" -o -name "*.bin" -o -name "*.tar.gz" \) -exec cp {} artifacts/ \;
+
+        # Lista os arquivos encontrados (para depuração)
+        echo "Artefatos encontrados:"
+        ls -R artifacts/
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: win98-quickinstall-artifacts
+        path: artifacts/
