@@ -1,25 +1,60 @@
-Run # Clona apenas os submódulos necessários
-Submodule 'busybox' (git://git.busybox.net/busybox) registered for path 'busybox'
-Cloning into '/home/runner/work/win98-quickinstall/win98-quickinstall/busybox'...
-Submodule path 'busybox': checked out 'e512aeb0fb3c585948ae6517cfdf4a53cf99774d'
-Submodule 'dosfstools' (https://github.com/dosfstools/dosfstools) registered for path 'dosfstools'
-Cloning into '/home/runner/work/win98-quickinstall/win98-quickinstall/dosfstools'...
-Submodule path 'dosfstools': checked out '2e866102d4378ea1ef5bdc02e11995018206f8af'
-Submodule 'anbui' (git@github.com:oerg866/anbui.git) registered for path 'installer/anbui'
-Cloning into '/home/runner/work/win98-quickinstall/win98-quickinstall/installer/anbui'...
-git@github.com: Permission denied (publickey).
-fatal: Could not read from remote repository.
+name: Build Installer Only
 
-Please make sure you have the correct access rights
-and the repository exists.
-fatal: clone of 'git@github.com:oerg866/anbui.git' into submodule path '/home/runner/work/win98-quickinstall/win98-quickinstall/installer/anbui' failed
-Failed to clone 'installer/anbui'. Retry scheduled
-Cloning into '/home/runner/work/win98-quickinstall/win98-quickinstall/installer/anbui'...
-git@github.com: Permission denied (publickey).
-fatal: Could not read from remote repository.
+on:
+  push:
+    branches:
+      - master  # Altere para o nome da sua branch principal
+  pull_request:
+    branches:
+      - master  # Altere para o nome da sua branch principal
+  workflow_dispatch:  # Permite acionar o workflow manualmente
 
-Please make sure you have the correct access rights
-and the repository exists.
-fatal: clone of 'git@github.com:oerg866/anbui.git' into submodule path '/home/runner/work/win98-quickinstall/win98-quickinstall/installer/anbui' failed
-Failed to clone 'installer/anbui' a second time, aborting
-Error: Process completed with exit code 1.
+jobs:
+  build-installer:
+    runs-on: ubuntu-latest  # Usa a última versão do Ubuntu
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: false  # Desativa o checkout recursivo de submódulos
+
+    - name: Clone necessary submodules manually
+      run: |
+        git submodule update --init --recursive busybox
+        git submodule update --init --recursive dosfstools
+        git submodule update --init --recursive installer/anbui
+        git submodule update --init --recursive linux
+        git submodule update --init --recursive pciutils
+        git submodule update --init --recursive util-linux
+        git submodule update --init --recursive win98-driver-lib-base
+        git submodule update --init --recursive win98-driver-lib-extra
+
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git wget bc bison flex libssl-dev libncurses-dev xz-utils cpio
+
+    - name: Build the installer
+      run: |
+        pushd installer
+          chmod +x build.sh
+          ./build.sh
+        popd
+
+    - name: Find and archive installer artifacts
+      run: |
+        mkdir -p artifacts
+        find installer -type f \( -name "*.bin" -o -name "*.exe" -o -name "*.sh" -o -name "*.zip" \) -exec cp {} artifacts/ \;
+        echo "Artefatos encontrados:"
+        ls -R artifacts/
+        if [ -z "$(ls -A artifacts/)" ]; then
+          echo "Nenhum artefato encontrado!"
+          exit 1
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: installer-artifacts
+        path: artifacts/
