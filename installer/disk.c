@@ -223,8 +223,8 @@ util_FileSystem util_partitionTypeByteToUtilFilesystem(uint8_t partitionType) {
 }
 
 static const char *UTIL_FS_STRINGS[FS_ENUM_SIZE] = {
-    "NO FILE SYSTEM",
-    "UNSUPPORTED FILESYSTEM",
+    "SEM SISTEMA DE ARQUIVOS",
+    "SISTEMA DE ARQUIVOS NÃO SUPORTADO",
     "FAT16",
     "FAT32"
 };
@@ -481,7 +481,7 @@ bool util_getFormatCommand(util_Partition *part, util_FileSystem fs, char *buf, 
     } else if (fs == fs_fat32) {
         snprintf(buf, bufSize, "mkfs.fat -v -S %d -s 8 -R 32 -f 2 -F 32 %s", part->sectorSize, part->device);
     } else {
-        QI_ASSERT(false && "Wrong file system");
+        QI_ASSERT(false && "Sistema de arquivos incorreto");
     }
     // Set partition file system to new file system
     part->fileSystem = fs;    
