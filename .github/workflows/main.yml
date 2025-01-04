@@ -52,7 +52,13 @@ jobs:
           libelf-dev \
           bc \
           ncurses-base \
-          wget
+          wget \
+          gcc-9 g++-9 binutils-2.34  # Instala versões mais antigas do gcc e binutils
+
+        # Configura o ambiente para usar o gcc-9 e o linker BFD
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+        sudo update-alternatives --install /usr/bin/ld ld /usr/bin/ld.bfd 90
 
     - name: Download and Setup Cross Compiler
       run: |
@@ -85,7 +91,6 @@ jobs:
         chmod +x init.sh
         ./init.sh
 
-    # Rest of the workflow remains the same...
     - name: Build BusyBox
       run: |
         echo "Verificando conteúdo do diretório busybox:"
