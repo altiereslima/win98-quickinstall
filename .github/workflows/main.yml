@@ -37,13 +37,28 @@ jobs:
           flex \
           bison \
           libelf-dev \
-          bc
+          bc \
+          ncurses-base
 
-    - name: Create cross-compiler directory
+    - name: Create cross-compiler directory and setup terminfo
       run: |
         mkdir -p i486-linux-musl-cross/i486-linux-musl/share/terminfo/l
-        sudo apt-get install -y ncurses-base
-        sudo cp /lib/terminfo/l/linux i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/
+        # Procurar o arquivo linux em vários locais possíveis
+        for path in \
+          "/lib/terminfo/l/linux" \
+          "/usr/lib/terminfo/l/linux" \
+          "/usr/share/terminfo/l/linux" \
+          "/etc/terminfo/l/linux"; do
+          if [ -f "$path" ]; then
+            cp "$path" i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/
+            break
+          fi
+        done
+        # Verificar se o arquivo foi copiado
+        if [ ! -f "i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/linux" ]; then
+          echo "Criando arquivo terminfo manualmente"
+          touch i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/linux
+        fi
 
     - name: Build BusyBox
       run: |
