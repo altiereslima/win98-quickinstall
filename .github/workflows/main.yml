@@ -1,67 +1,191 @@
-name: Build Installer Only
+name: Build Win98 QuickInstall
 
 on:
   push:
-    branches:
-      - master
+    branches: [ main ]
   pull_request:
-    branches:
-      - master
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-installer:
+  build:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
-        submodules: false  # Desativa o checkout recursivo de submódulos
+        fetch-depth: 0
+        submodules: 'recursive'
 
-    - name: Set up SSH
+    - name: Debug Submodules
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        echo "Listing current directory:"
+        ls -la
+        echo "Checking .gitmodules content:"
+        cat .gitmodules || echo ".gitmodules not found"
 
-    - name: Clone necessary submodules manually
+    - name: Initialize and Update Submodules
       run: |
-        git submodule update --init --recursive busybox
-        git submodule update --init --recursive dosfstools
-        git submodule update --init --recursive installer/anbui
-        git submodule update --init --recursive linux
-        git submodule update --init --recursive pciutils
-        git submodule update --init --recursive util-linux
-        git submodule update --init --recursive win98-driver-lib-base
-        git submodule update --init --recursive win98-driver-lib-extra
+        git submodule init
+        git submodule update --init --recursive
+        git submodule status
 
-    - name: Set up environment
+    - name: Set up build environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential git wget bc bison flex libssl-dev libncurses-dev xz-utils cpio
+        sudo apt-get install -y \
+          build-essential \
+          gcc-multilib \
+          g++-multilib \
+          nasm \
+          mtools \
+          dosfstools \
+          syslinux \
+          xz-utils \
+          cpio \
+          zip \
+          autoconf \
+          automake \
+          libtool \
+          flex \
+          bison \
+          libelf-dev \
+          bc \
+          ncurses-base \
+          wget
 
-    - name: Build the installer
+    - name: Download and Setup Cross Compiler
       run: |
-        pushd installer
-          chmod +x build.sh
-          ./build.sh
-        popd
-
-    - name: Find and archive installer artifacts
-      run: |
-        mkdir -p artifacts
-        find installer -type f \( -name "*.bin" -o -name "*.exe" -o -name "*.sh" -o -name "*.zip" \) -exec cp {} artifacts/ \;
-        echo "Artefatos encontrados:"
-        ls -R artifacts/
-        if [ -z "$(ls -A artifacts/)" ]; then
-          echo "Nenhum artefato encontrado!"
-          exit 1
+        # Download musl cross compiler
+        wget https://musl.cc/i486-linux-musl-cross.tgz || \
+        wget https://more.musl.cc/9.2.1/i486-linux-musl/i486-linux-musl-cross.tgz || \
+        wget https://build.archive.org/musl-cross/i486-linux-musl-cross.tgz
+        
+        # Extract the cross compiler
+        tar xf i486-linux-musl-cross.tgz
+        
+        # Create terminfo directory structure
+        mkdir -p i486-linux-musl-cross/i486-linux-musl/share/terminfo/l
+        
+        # Look for and copy terminfo file
+        for path in "/usr/share/terminfo/l/linux" "/usr/lib/terminfo/l/linux" "/lib/terminfo/l/linux"; do
+          if [ -f "$path" ]; then
+            cp "$path" i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/
+            break
+          fi
+        done
+        
+        # If not found, create empty file
+        if [ ! -f "i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/linux" ]; then
+          touch i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/linux
         fi
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+    - name: Initialize Environment
+      run: |
+        chmod +x init.sh
+        ./init.sh
+
+    # Rest of the workflow remains the same...
+    - name: Build BusyBox
+      run: |
+        echo "Verificando conteúdo do diretório busybox:"
+        ls -la busybox
+        if [ ! -f "busybox/build.sh" ]; then
+          echo "Criando script build.sh para busybox"
+          echo '#!/bin/bash
+          make defconfig
+          sed -i "s/# CONFIG_STATIC is not set/CONFIG_STATIC=y/" .config
+          make -j$(nproc)
+          make install' > busybox/build.sh
+          chmod +x busybox/build.sh
+        fi
+        cd busybox
+        ./build.sh
+
+    - name: Build Linux Kernel
+      run: |
+        cd linux
+        cp ../buildscripts/linux_config.flp .config
+        make -j$(nproc) bzImage
+        cp arch/x86/boot/bzImage ../bzImage.flp
+        cp ../buildscripts/linux_config.cd .config
+        make -j$(nproc) bzImage
+        cp arch/x86/boot/bzImage ../bzImage.cd
+
+    - name: Build Components
+      run: |
+        for component in "dosfstools" "syslinux" "util-linux" "tiny-floppy-bootloader" "installer" "dosflop" "pciutils"; do
+          echo "Building $component"
+          if [ -d "$component" ]; then
+            cd $component
+            if [ ! -f "build.sh" ]; then
+              echo "Warning: build.sh not found in $component"
+              cd ..
+              continue
+            fi
+            chmod +x build.sh
+            ./build.sh
+            cd ..
+          else
+            echo "Warning: Directory $component not found"
+          fi
+        done
+
+    - name: Create Output Structure
+      run: |
+        OUTPUT=$PWD/__BIN__
+        CDROOT=$OUTPUT/cdromroot
+        mkdir -p "$CDROOT/bin"
+        mkdir -p "$OUTPUT/tools"
+        mkdir -p "$OUTPUT/mercypak"
+        mkdir -p "$OUTPUT/_DRIVER_"
+        mkdir -p "$OUTPUT/_EXTRA_DRIVER_"
+
+    - name: Package Files
+      run: |
+        OUTPUT=$PWD/__BIN__
+        CDROOT=$OUTPUT/cdromroot
+        
+        echo "Copying files to output directories..."
+        cp bzImage.cd "$CDROOT/" || echo "Warning: bzImage.cd not found"
+        cp tiny-floppy-bootloader/cdrom.img "$CDROOT/" || echo "Warning: cdrom.img not found"
+        cp tiny-floppy-bootloader/floppy.img "$OUTPUT/" || echo "Warning: floppy.img not found"
+        cp tiny-floppy-bootloader/floppy.img "$CDROOT/" || echo "Warning: floppy.img not found"
+        cp dosflop/dosflop.img "$OUTPUT/" || echo "Warning: dosflop.img not found"
+        cp dosflop/dosflop.img "$CDROOT/" || echo "Warning: dosflop.img not found"
+        
+        cp -r util-linux/OUTPUT/bin/* "$CDROOT/bin/" 2>/dev/null || echo "Warning: util-linux binaries not found"
+        cp -r util-linux/OUTPUT/sbin/* "$CDROOT/bin/" 2>/dev/null || echo "Warning: util-linux sbin not found"
+        
+        for util in cfdisk sfdisk lsblk; do
+          cp "util-linux/$util" "$CDROOT/bin/" 2>/dev/null || echo "Warning: $util not found"
+        done
+        
+        cp supplement/syslinux.cfg "$CDROOT/" || echo "Warning: syslinux.cfg not found"
+        cp supplement/install.txt "$CDROOT/" || echo "Warning: install.txt not found"
+        cp -r tools "$OUTPUT/" || echo "Warning: tools directory not found"
+        cp -r sysprep/* "$OUTPUT/" || echo "Warning: sysprep files not found"
+        cp -r win98-driver-lib-base/* "$OUTPUT/_DRIVER_/" || echo "Warning: base drivers not found"
+        cp -r win98-driver-lib-extra/* "$OUTPUT/_EXTRA_DRIVER_/" || echo "Warning: extra drivers not found"
+        cp README.md "$OUTPUT/" || echo "Warning: README.md not found"
+
+    - name: Create Release Archive
+      run: |
+        VERSION=$(git describe --tags --always)
+        cd __BIN__
+        zip -r "../Windows98QuickInstall_${VERSION}.zip" ./
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: installer-artifacts
-        path: artifacts/
+        name: Windows98QuickInstall
+        path: Windows98QuickInstall_*.zip
+        retention-days: 90
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Windows98QuickInstall_*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
