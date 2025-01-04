@@ -17,7 +17,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        submodules: 'recursive'  # Importante para garantir que os submodules sejam clonados
+        submodules: false  # Desativa o checkout recursivo de submódulos
+
+    - name: Clone necessary submodules manually
+      run: |
+        # Clona apenas os submódulos necessários
+        git submodule update --init --recursive busybox
+        git submodule update --init --recursive dosfstools
+        git submodule update --init --recursive installer/anbui
+        git submodule update --init --recursive linux
+        git submodule update --init --recursive pciutils
+        git submodule update --init --recursive util-linux
+        git submodule update --init --recursive win98-driver-lib-base
+        git submodule update --init --recursive win98-driver-lib-extra
 
     - name: Set up environment
       run: |
