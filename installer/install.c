@@ -102,12 +102,12 @@ static inline MappedFile *inst_openSourceFile(size_t osVariantIndex, const char 
 
 /* Shows disclaimer text */
 static inline void inst_showDisclaimer() {
-    ad_textFileBox("DISCLAIMER", inst_getCDFilePath(0, "install.txt"));
+    ad_textFileBox("INSTALAÇÃO", inst_getCDFilePath(0, "install.txt"));
 }
 
 /* Shows welcome screen, returns false if user wants to exit to shell */
 static inline void inst_showWelcomeScreen() {
-    ad_okBox("Welcome", false, "Welcome to Windows 9x QuickInstall!");
+    ad_okBox("Bem-vindo", false, "Bem-vindo ao Instalador do Windows!");
 }
 
 /* Checks if given hard disk contains the installation source */
@@ -122,31 +122,31 @@ static inline bool inst_isInstallationSourcePartition(util_Partition *part) {
 
 /* Tells the user he is trying to partition the install source disk */
 static inline void inst_showInstallationSourceDiskError() {
-    ad_okBox("Attention", false, "The selected disk contains the installation source.\nIt can not be partitioned.");
+    ad_okBox("Atenção", false, "O disco selecionado contém a fonte de instalação.\nEle não pode ser particionado.");
 }
 
 /* Tells the user he is trying to install to the install source partition */
 static inline void inst_showInstallationSourcePartitionError() {
-    ad_okBox("Attention", false, "The selected partition contains the installation source.\nIt cannot be the installation destination.");
+    ad_okBox("Atenção", false, "A partição selecionada contém a fonte de instalação.\nEla não pode ser o destino da instalação.");
 }
 
 /* Tells the user he is trying to install to a non-FAT partition */
 static inline void inst_showUnsupportedFileSystemError() {
-    ad_okBox("Attention", false, "The selected partition has an unsupported file system.\nIt cannot be the installation destination.");
+    ad_okBox("Atenção", false, "A partição selecionada tem um sistema de arquivos não suportado.\nEla não pode ser o destino da instalação.");
 }
 
 /* Tells the user he is trying to install to a computer without hard disks. */
 static inline void inst_noHardDisksFoundError() {
-    ad_okBox("Attention", false, "No hard disks found!\nPlease install a hard disk and try again!");
+    ad_okBox("Atenção", false, "Nenhum disco rígido encontrado!\nPor favor, instalem um disco rígido e tentem novamente!");
 }
 
 /* Tells the user about an oopsie trying to open a file for reading. */
 static inline void inst_showFileError() {
-    ad_okBox("Attention", false, "ERROR: A problem occured handling a file for this OS variant.\n(%d: %s)", errno, strerror(errno));
+    ad_okBox("Atenção", false, "ERRO: Ocorreu um problema ao lidar com um arquivo para esta variante do SO.\n(%d: %s)", errno, strerror(errno));
 }
 
 static inline util_HardDiskArray *inst_getSystemHardDisks() {
-    ad_setFooterText("Obtaining System Hard Disk Information...");
+    ad_setFooterText("Obtendo informações sobre os discos rígidos do sistema...");
     util_HardDiskArray *ret = util_getSystemHardDisks();
     ad_clearFooter();
     return ret;
@@ -159,12 +159,12 @@ typedef enum {
 } inst_SetupAction;
 
 static inst_SetupAction inst_showMainMenu() {
-    ad_Menu *menu = ad_menuCreate("Windows 9x QuickInstall: Main Menu", "Where do you want to go today(tm)?", true);
+    ad_Menu *menu = ad_menuCreate("Instalado do Windows 9x: Menu Principal", "Para onde vocês querem ir hoje?", true);
     QI_ASSERT(menu);
 
-    ad_menuAddItemFormatted(menu, "[INSTALL] Install selected Operating System variant");
-    ad_menuAddItemFormatted(menu, " [CFDISK] Partition hard disks");
-    ad_menuAddItemFormatted(menu, "  [SHELL] Exit to minmal diagnostic Linux shell");
+ad_menuAddItemFormatted(menu, "[INSTALAR] Instalar a variante do Sistema Operacional selecionada");
+ad_menuAddItemFormatted(menu, " [CFDISK] Particionar os discos rígidos");
+ad_menuAddItemFormatted(menu, "  [SHELL] Sair para o shell de diagnóstico mínimo do Linux");
 
     int menuResult = ad_menuExecute(menu);
 
@@ -184,7 +184,7 @@ static inst_SetupAction inst_showMainMenu() {
     Otherwise it can return "false" if the user selected BACK.
 */
 static bool inst_showOSVariantSelect(size_t *variantIndex, size_t *variantCount) {
-    ad_Menu *menu = ad_menuCreate("Installation Variant", "Select the operating system variant you wish to install.", true);
+    ad_Menu *menu = ad_menuCreate("Variante de Instalação", "Selecione a variante do sistema operacional que deseja instalar.", true);
     int menuResult;
 
     QI_ASSERT(menu);
@@ -204,7 +204,7 @@ static bool inst_showOSVariantSelect(size_t *variantIndex, size_t *variantCount)
         }
 
         if (!util_readFirstLineFromFileIntoBuffer(tmpInfPath, tmpVariantLabel, sizeof(tmpVariantLabel))) {
-            ad_okBox("Error", false, "Error while reading file\n'%s'", tmpInfPath);
+            ad_okBox("Erro", false, "Erro ao ler o arquivo\n'%s'", tmpInfPath);
             break;
         }
 
@@ -247,12 +247,12 @@ static void inst_showPartitionWizard(util_HardDiskArray *hdds) {
     }
 
     while (1) {
-        ad_Menu *menu = ad_menuCreate("Partition Wizard", "Select the Hard Disk you wish to partition.", true);
+        ad_Menu *menu = ad_menuCreate("Assistente de Partição", "Selecione o Disco Rígido que vocês desejam particionar.", true);
 
         QI_ASSERT(menu);
 
         for (size_t i = 0; i < hdds->count; i++) {
-            ad_menuAddItemFormatted(menu, "%s [%s] - Size: %llu MB %s",
+            ad_menuAddItemFormatted(menu, "%s [%s] - Tamanho: %llu MB %s",
                 hdds->disks[i].device,
                 hdds->disks[i].model,
                 hdds->disks[i].size / 1024ULL / 1024ULL,
@@ -260,7 +260,7 @@ static void inst_showPartitionWizard(util_HardDiskArray *hdds) {
                 );
         }
         
-        ad_menuAddItemFormatted(menu, "%s", "[FINISHED]");
+        ad_menuAddItemFormatted(menu, "%s", "[FINALIZADO]");
 
         menuResult = ad_menuExecute(menu);
 
@@ -285,9 +285,9 @@ static void inst_showPartitionWizard(util_HardDiskArray *hdds) {
         system(cfdiskCmd);
 
         ad_restore();
-        ad_okBox("Attention", false,
-            "Remember to answer 'yes' to the format prompt\n"
-            "if you are installing on a partition you've just created!");
+        ad_okBox("Atenção", false,
+            "Lembrem-se de responder 'sim' ao prompt de formatação\n"
+            "se estiverem instalando em uma partição que acabaram de criar!");
     }
 }
 
@@ -304,7 +304,7 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
     }
 
     while (1) {
-        ad_Menu *menu = ad_menuCreate("Installation Destination", "Select the partition you wish to install to.", true);
+        ad_Menu *menu = ad_menuCreate("Destino da Instalação", "Selecione a partição para a qual vocês desejam instalar.", true);
 
         QI_ASSERT(menu);
 
@@ -314,7 +314,7 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
             for (size_t part = 0; part < harddisk->partitionCount; part++) {
                 util_Partition *partition = &harddisk->partitions[part];
 
-                ad_menuAddItemFormatted(menu, "%8s: (%s, %llu MB) on disk %s [%s] %s",
+                ad_menuAddItemFormatted(menu, "%8s: (%s, %llu MB) no disco %s [%s] %s",
                     util_shortDeviceString(partition->device),
                     util_utilFilesystemToString(partition->fileSystem),
                     partition->size / 1024ULL / 1024ULL,
@@ -327,7 +327,7 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
 
         if (ad_menuGetItemCount(menu) == 0) {
             ad_menuDestroy(menu);
-            ad_okBox("Error", false, "No partitions were found! Partition your disk and try again!");
+            ad_okBox("Erro", false, "Nenhuma partição foi encontrada! Particionem o disco e tentem novamente!");
             return NULL;
         }
 
@@ -358,9 +358,9 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
 
 /* Asks user if he wants to format selected partition. Returns true if so. */
 static inline int inst_formatPartitionDialog(util_Partition *part) {
-    return ad_yesNoBox("Confirm", true,
-        "You have chosen the partition '%s'.\n"
-        "Would you like to format it before the installation (recommended)?\n",
+    return ad_yesNoBox("Confirmar", true,
+        "Vocês escolheram a partição '%s'.\n"
+        "Gostariam de formatá-la antes da instalação (recomendado)?\n",
         part->device);
 }
 
@@ -368,49 +368,49 @@ static bool inst_formatPartition(util_Partition *part) {
     char formatCmd[UTIL_MAX_CMD_LENGTH];
     bool ret = util_getFormatCommand(part, part->fileSystem, formatCmd, UTIL_MAX_CMD_LENGTH);
     QI_ASSERT(ret && "GetFormatCommand");
-    return (0 == ad_runCommandBox("Formatting partition...", formatCmd));
+    return (0 == ad_runCommandBox("Formatando partição...", formatCmd));
 }
 
 /* Asks user if he wants to overwrite the MBR and set the partition active. Returns true if so. */
 static inline int inst_askUserToOverwriteMBRAndSetActive(util_Partition *part) {
-    return ad_yesNoBox("Confirm", true,
-        "You have chosen the partition '%s'.\n"
-        "Would you like to overwrite the Master Boot Record (MBR)\n"
-        "and set the partition active (recommended)?", 
+    return ad_yesNoBox("Confirmar", true,
+        "Vocês escolheram a partição '%s'.\n"
+        "Gostariam de sobrescrever o Master Boot Record (MBR)\n"
+        "e tornar a partição ativa (recomendado)?", 
         part->device);
 }
 
 /* Show message box informing user that formatting failed. */
 static inline void inst_showFailedFormat(util_Partition *part) {
-    ad_okBox("Error", false,
-        "The partition %s could not be formatted.\n"
-        "The last recorded error was: '%s'.\n"
-        "There may be a disk problem.\n"
-        "Try re-partitioning the disk or using another partition.\n"
-        "Returning to the partition selector.",
+    ad_okBox("Erro", false,
+        "A partição %s não pôde ser formatada.\n"
+        "O último erro registrado foi: '%s'.\n"
+        "Pode haver um problema com o disco.\n"
+        "Tentem particionar o disco novamente ou usar outra partição.\n"
+        "Voltando para o seletor de partições.",
         part->device, strerror(errno));
 }
 
 /* Show message box informing user that mount failed*/
 static inline void inst_showFailedMount(util_Partition *part) {
-    ad_okBox("Error", false,
-        "The partition %s could not be accessed.\n"
-        "The last recorded error was: '%s'.\n"
-        "There may be a disk problem.\n"
-        "You can try formatting the partition.\n"
-        "Returning to the partition selector.",
+    ad_okBox("Erro", false,
+        "A partição %s não pôde ser acessada.\n"
+        "O último erro registrado foi: '%s'.\n"
+        "Pode haver um problema com o disco.\n"
+        "Vocês podem tentar formatar a partição.\n"
+        "Voltando para o seletor de partições.",
         part->device, strerror(errno));
 }
 
 /* Show message box informing user that copying failed*/
 static inline void inst_showFailedCopy(const char *sourceFile) {
-    ad_okBox("Error", false,
-        "An error occured while unpacking '%s'\n"
-        "for this operating system variant.\n"
-        "The last recorded error was: '%s'.\n"
-        "There may be a disk problem.\n"
-        "You can try a different source / destination disk.\n"
-        "Returning to the partition selector.", 
+    ad_okBox("Erro", false,
+        "Ocorreu um erro ao descompactar '%s'\n"
+        "para esta variante do sistema operacional.\n"
+        "O último erro registrado foi: '%s'.\n"
+        "Pode haver um problema com o disco.\n"
+        "Vocês podem tentar usar outro disco de origem / destino.\n"
+        "Voltando para o seletor de partições.", 
         sourceFile,
         strerror(errno));
 }
@@ -418,7 +418,7 @@ static inline void inst_showFailedCopy(const char *sourceFile) {
 
 /* Ask user if he wants to install driver package */
 static inline int inst_showDriverPrompt() {
-    return ad_yesNoBox("Selection", true, "Would you like to install the integrated device drivers?");
+    return ad_yesNoBox("Seleção", true, "Vocês gostariam de instalar os drivers integrados?");
 }
 
 /* Gets a MercyPak string (8 bit length + n chars) into dst. Must be a buffer of >= 256 bytes size. */
@@ -459,12 +459,12 @@ static bool inst_copyFiles(MappedFile *file, const char *installPath, const char
     } else if (util_stringEquals(fileHeader, MERCYPAK_V2_MAGIC)) {
         mercypakV2 = true;
     } else {
-        QI_ASSERT(false && "File header wrong");
+        QI_ASSERT(false && "Cabeçalho do arquivo incorreto");
         free(destPath);
         return false;
     }
 
-    ad_ProgressBox *pbox = ad_progressBoxCreate("Windows 9x QuickInstall", dirCount, "Creating Directories (%s)...", filePromptString);
+    ad_ProgressBox *pbox = ad_progressBoxCreate("Windows 9x QuickInstall", dirCount, "Criando Diretórios (%s)...", filePromptString);
 
     QI_ASSERT(pbox);
 
@@ -487,7 +487,7 @@ static bool inst_copyFiles(MappedFile *file, const char *installPath, const char
 
     success = true;
 
-    pbox = ad_progressBoxCreate("Windows 9x QuickInstall", mappedFile_getFileSize(file), "Copying Files (%s)...", filePromptString);
+    pbox = ad_progressBoxCreate("Instalador do Windows 9x", mappedFile_getFileSize(file), "Copiando Arquivos (%s)...", filePromptString);
 
     QI_ASSERT(pbox);
 
@@ -583,7 +583,7 @@ static bool inst_setupBootSectorAndMBR(util_Partition *part, bool setActiveAndDo
         success &= util_writeWin98MBRToDrive(part->parent);
         char activateCmd[UTIL_MAX_CMD_LENGTH];
         snprintf(activateCmd, UTIL_MAX_CMD_LENGTH, "sfdisk --activate %s %zu", part->parent->device, part->indexOnParent);
-        success &= (0 == ad_runCommandBox("Activating partition...", activateCmd));
+        success &= (0 == ad_runCommandBox("Ativando partição...", activateCmd));
     }
     return success;
 }
@@ -591,15 +591,15 @@ static bool inst_setupBootSectorAndMBR(util_Partition *part, bool setActiveAndDo
 /* Show success screen. Ask user if he wants to reboot */
 static inline bool inst_showSuccessAndAskForReboot() {
     // Returns TRUE (meaning reboot = true) if YES (0) happens. sorry for the confusion.
-    ad_Menu *menu = ad_menuCreate("Windows 9x QuickInstall: Success", 
-        "The installation was successful.\n"
-        "Would you like to reboot or exit to a shell?", 
+    ad_Menu *menu = ad_menuCreate("Instalador do Windows 9x: Sucesso", 
+        "A instalação foi bem-sucedida.\n"
+        "Vocês gostariam de reiniciar ou sair para o shell?", 
         false);
 
     QI_ASSERT(menu);
 
-    ad_menuAddItemFormatted(menu, "Reboot");
-    ad_menuAddItemFormatted(menu, "Exit to shell");
+    ad_menuAddItemFormatted(menu, "Reiniciar");
+    ad_menuAddItemFormatted(menu, "Sair para o shell");
 
     int menuResult = ad_menuExecute(menu);
 
@@ -610,9 +610,9 @@ static inline bool inst_showSuccessAndAskForReboot() {
 
 /* Show failure screen :( */
 static inline void inst_showFailMessage() {
-    ad_okBox("Error!", false,
-        "There was a problem during installation! :(\n"
-        "You can press ENTER to get to a shell and inspect the damage.");
+    ad_okBox("Erro!", false,
+        "Houve um problema durante a instalação! :(\n"
+        "Vocês podem pressionar ENTER para acessar o shell e inspecionar o problema.");
 }
 
 /* Asks user which version of the hardware detection scheme he wants */
@@ -622,13 +622,13 @@ static const char *inst_askUserForRegistryVariant(void) {
         "SLOWPNP.866"
     };
     const char *optionLabels[] = { 
-        "Fast hardware detection, skipping most non-PNP devices.",
-        "Full hardware detection, including ALL non-PNP devices."
+        "Detecção rápida de hardware, pulando a maioria dos dispositivos não PNP.",
+        "Detecção completa de hardware, incluindo TODOS os dispositivos não PNP."
     };
 
-    int menuResult = ad_menuExecuteDirectly("Select hardware detection method", true, 
+    int menuResult = ad_menuExecuteDirectly("Selecionar método de detecção de hardware", true, 
         util_arraySize(optionLabels), optionLabels, 
-        "Please select the hardware detection method to use.");
+        "Por favor, selecionem o método de detecção de hardware a ser usado.");
 
     if (menuResult == AD_CANCELED) {
         return NULL;
@@ -838,7 +838,7 @@ bool inst_main() {
                 }
 
                 // sourceFile is already opened at this point for readahead prebuffering
-                installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Operating System");
+                installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Sistema Operacional");
                 mappedFile_close(sourceFile);
 
                 if (!installSuccess) {
@@ -850,8 +850,8 @@ bool inst_main() {
                 // If the main data copy was successful, we move on to the driver file
                 if (installSuccess && installDrivers) {
                     sourceFile = inst_openSourceFile(osVariantIndex, INST_DRIVER_FILE, readahead);
-                    QI_ASSERT(sourceFile && "Failed to open driver file");
-                    installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Driver Library");
+                    QI_ASSERT(sourceFile && "Falha ao abrir o arquivo de driver");
+                    installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Biblioteca de Drivers");
                     mappedFile_close(sourceFile);
                 }
 
@@ -864,8 +864,8 @@ bool inst_main() {
                 // If driver data copy was successful, install registry for selceted hardware detection variant
                 if (installSuccess) {
                     sourceFile = inst_openSourceFile(osVariantIndex, registryUnpackFile, readahead);
-                    QI_ASSERT(sourceFile && "Failed to open registry file");
-                    installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Registry");
+                    QI_ASSERT(sourceFile && "Falha ao abrir o arquivo de registro");
+                    installSuccess = inst_copyFiles(sourceFile, destinationPartition->mountPath, "Registro");
                     mappedFile_close(sourceFile);
                 }
 
