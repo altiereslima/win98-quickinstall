@@ -1,65 +1,141 @@
-name: Build win98-quickinstall and Generate Artifact
+name: Build Win98 QuickInstall
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
-        submodules: false
+        fetch-depth: 0
+        submodules: 'recursive'
 
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-    - name: Clone necessary submodules manually
-      run: |
-        git submodule update --init --recursive busybox
-        git submodule update --init --recursive dosfstools
-        git submodule update --init --recursive installer/anbui
-        git submodule update --init --recursive linux
-        git submodule update --init --recursive pciutils
-        git submodule update --init --recursive util-linux
-        git submodule update --init --recursive win98-driver-lib-base
-        git submodule update --init --recursive win98-driver-lib-extra
-
-    - name: Set up environment
+    - name: Set up build environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential git wget bc bison flex libssl-dev libncurses-dev
+        sudo apt-get install -y \
+          build-essential \
+          gcc-multilib \
+          g++-multilib \
+          nasm \
+          mtools \
+          dosfstools \
+          syslinux \
+          xz-utils \
+          cpio \
+          zip \
+          autoconf \
+          automake \
+          libtool \
+          flex \
+          bison \
+          libelf-dev \
+          bc
 
-    - name: Build the project
+    - name: Create cross-compiler directory
       run: |
+        mkdir -p i486-linux-musl-cross/i486-linux-musl/share/terminfo/l
+        sudo apt-get install -y ncurses-base
+        sudo cp /lib/terminfo/l/linux i486-linux-musl-cross/i486-linux-musl/share/terminfo/l/
+
+    - name: Build BusyBox
+      run: |
+        cd busybox
         chmod +x build.sh
         ./build.sh
 
-    - name: Find and archive build artifacts
+    - name: Build Linux Kernel
       run: |
-        mkdir -p artifacts
-        find . -type f \( -name "*.iso" -o -name "*.img" -o -name "*.bin" -o -name "*.tar.gz" \) -exec cp {} artifacts/ \;
-        echo "Artefatos encontrados:"
-        ls -R artifacts/
-        if [ -z "$(ls -A artifacts/)" ]; then
-          echo "Nenhum artefato encontrado!"
-          exit 1
-        fi
+        cd linux
+        cp ../buildscripts/linux_config.flp .config
+        make -j$(nproc) bzImage
+        cp arch/x86/boot/bzImage ../bzImage.flp
+        cp ../buildscripts/linux_config.cd .config
+        make -j$(nproc) bzImage
+        cp arch/x86/boot/bzImage ../bzImage.cd
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+    - name: Build Components
+      run: |
+        components=("dosfstools" "syslinux" "util-linux" "tiny-floppy-bootloader" "installer" "dosflop" "pciutils")
+        for component in "${components[@]}"; do
+          cd $component
+          chmod +x build.sh
+          ./build.sh
+          cd ..
+        done
+
+    - name: Create Output Structure
+      run: |
+        OUTPUT=$PWD/__BIN__
+        CDROOT=$OUTPUT/cdromroot
+        mkdir -p "$CDROOT/bin"
+        mkdir -p "$OUTPUT/tools"
+        mkdir -p "$OUTPUT/mercypak"
+        mkdir -p "$OUTPUT/_DRIVER_"
+        mkdir -p "$OUTPUT/_EXTRA_DRIVER_"
+
+    - name: Package Files
+      run: |
+        OUTPUT=$PWD/__BIN__
+        CDROOT=$OUTPUT/cdromroot
+        
+        # Copy kernels and bootloaders
+        cp bzImage.cd "$CDROOT/"
+        cp tiny-floppy-bootloader/cdrom.img "$CDROOT/"
+        cp tiny-floppy-bootloader/floppy.img "$OUTPUT/"
+        cp tiny-floppy-bootloader/floppy.img "$CDROOT/"
+        cp dosflop/dosflop.img "$OUTPUT/"
+        cp dosflop/dosflop.img "$CDROOT/"
+        
+        # Copy binaries
+        cp util-linux/OUTPUT/bin/* "$CDROOT/bin/" || true
+        cp util-linux/OUTPUT/sbin/* "$CDROOT/bin/" || true
+        cp util-linux/{cfdisk,sfdisk,lsblk} "$CDROOT/bin/" || true
+        cp pciutils/{lspci,setpci,pci.ids} "$CDROOT/bin/" || true
+        cp dosfstools/OUTPUT/sbin/* "$CDROOT/bin/" || true
+        
+        # Copy configuration and tools
+        cp supplement/syslinux.cfg "$CDROOT"
+        cp supplement/install.txt "$CDROOT/"
+        cp installer/lunmercy "$CDROOT/bin/"
+        cp -r tools "$OUTPUT"
+        
+        # Copy SYSLINUX components
+        cp syslinux/bios/mbr/mbr.bin "$OUTPUT/tools/syslinux_mbr.bin"
+        objcopy -O binary -j .data syslinux/bios/linux/bootsect_bin.o "$OUTPUT/tools/syslinux_bs.bin"
+        cp syslinux/bios/com32/elflink/ldlinux/ldlinux.c32 "$OUTPUT/tools"
+        cp syslinux/bios/core/ldlinux.sys "$OUTPUT/tools"
+        
+        # Copy drivers and preparation files
+        cp -r sysprep/* "$OUTPUT"
+        cp -r win98-driver-lib-base/* "$OUTPUT/_DRIVER_"
+        cp -r win98-driver-lib-extra/* "$OUTPUT/_EXTRA_DRIVER_"
+        cp README.md "$OUTPUT"
+
+    - name: Create Release Archive
+      run: |
+        VERSION=$(git describe --tags --always)
+        cd __BIN__
+        zip -r "../Windows98QuickInstall_${VERSION}.zip" ./
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: win98-quickinstall-artifacts
-        path: artifacts/
+        name: Windows98QuickInstall
+        path: Windows98QuickInstall_*.zip
+        retention-days: 90
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Windows98QuickInstall_*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
