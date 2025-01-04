@@ -3,25 +3,31 @@ name: Build win98-quickinstall and Generate Artifact
 on:
   push:
     branches:
-      - master  # Branch principal
+      - master
   pull_request:
     branches:
-      - master  # Branch principal
-  workflow_dispatch:  # Permite acionar o workflow manualmente
+      - master
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Usa a última versão do Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        submodules: false  # Desativa o checkout recursivo de submódulos
+        submodules: false
+
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
 
     - name: Clone necessary submodules manually
       run: |
-        # Clona apenas os submódulos necessários
         git submodule update --init --recursive busybox
         git submodule update --init --recursive dosfstools
         git submodule update --init --recursive installer/anbui
@@ -43,18 +49,13 @@ jobs:
 
     - name: Find and archive build artifacts
       run: |
-        # Procura por arquivos de saída comuns
         mkdir -p artifacts
         find . -type f \( -name "*.iso" -o -name "*.img" -o -name "*.bin" -o -name "*.tar.gz" \) -exec cp {} artifacts/ \;
-
-        # Lista os arquivos encontrados (para depuração)
         echo "Artefatos encontrados:"
         ls -R artifacts/
-
-        # Verifica se há artefatos
         if [ -z "$(ls -A artifacts/)" ]; then
           echo "Nenhum artefato encontrado!"
-          exit 1  # Falha no workflow se nenhum artefato for encontrado
+          exit 1
         fi
 
     - name: Upload artifacts
