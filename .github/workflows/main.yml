@@ -17,6 +17,11 @@ jobs:
         fetch-depth: 0
         submodules: 'installer/anbui'
 
+    - name: List contents after checkout
+      run: |
+        ls -la installer
+        ls -la installer/anbui
+
     - name: Download and Setup Cross Compiler
       run: |
         # Baixa o cross compiler musl
@@ -32,7 +37,13 @@ jobs:
 
     - name: Build Installer
       run: |
+        echo "Current directory before build:"
+        pwd
+        ls -la installer
         cd installer
+        echo "Current directory after cd:"
+        pwd
+        ls -la
         chmod +x build.sh
         ./build.sh
 
