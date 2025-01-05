@@ -17,10 +17,8 @@ jobs:
         fetch-depth: 0
         submodules: 'installer/anbui'
 
-    - name: List contents after checkout
-      run: |
-        ls -la installer
-        ls -la installer/anbui
+    - name: List contents of installer/anbui
+      run: ls -la installer/anbui
 
     - name: Download and Setup Cross Compiler
       run: |
@@ -45,10 +43,10 @@ jobs:
         pwd
         ls -la
         echo "Executing build.sh with debugging:"
-        set -x  # Enable trace mode
+        set -x
         chmod +x build.sh
         ./build.sh
-        set +x  # Disable trace mode
+        set +x
 
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v4
