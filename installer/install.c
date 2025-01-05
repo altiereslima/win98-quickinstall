@@ -622,8 +622,8 @@ static const char *inst_askUserForRegistryVariant(void) {
         "SLOWPNP.866"
     };
     const char *optionLabels[] = { 
-        "Detecção rápida de hardware, pulando a maioria dos dispositivos não PNP.",
-        "Detecção completa de hardware, incluindo TODOS os dispositivos não PNP."
+        "Detecção rápida de hardware. Ignorar maioria dos dispositivos não PNP.",
+        "Detecção completa de hardware. Ignorar TODOS os dispositivos não PNP."
     };
 
     int menuResult = ad_menuExecuteDirectly("Selecionar método de detecção de hardware", true, 
