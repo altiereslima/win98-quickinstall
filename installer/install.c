@@ -137,7 +137,7 @@ static inline void inst_showUnsupportedFileSystemError() {
 
 /* Tells the user he is trying to install to a computer without hard disks. */
 static inline void inst_noHardDisksFoundError() {
-    ad_okBox("Atenção", false, "Nenhum disco rígido encontrado!\nPor favor, instalem um disco rígido e tentem novamente!");
+    ad_okBox("Atenção", false, "Nenhum disco rígido encontrado!\nPor favor, instale um disco rígido e tente novamente!");
 }
 
 /* Tells the user about an oopsie trying to open a file for reading. */
@@ -159,7 +159,7 @@ typedef enum {
 } inst_SetupAction;
 
 static inst_SetupAction inst_showMainMenu() {
-    ad_Menu *menu = ad_menuCreate("Instalador do Windows 9x: Menu Principal", "Para onde vocês querem ir hoje?", true);
+    ad_Menu *menu = ad_menuCreate("Instalador do Windows 9x: Menu Principal", "Para onde você quer ir hoje?", true);
     QI_ASSERT(menu);
 
 ad_menuAddItemFormatted(menu, "[INSTALAR] Instalar a variante do Sistema Operacional selecionada");
@@ -247,7 +247,7 @@ static void inst_showPartitionWizard(util_HardDiskArray *hdds) {
     }
 
     while (1) {
-        ad_Menu *menu = ad_menuCreate("Assistente de Partição", "Selecione o Disco Rígido que vocês desejam particionar.", true);
+        ad_Menu *menu = ad_menuCreate("Assistente de Partição", "Selecione o Disco Rígido que você deseja particionar.", true);
 
         QI_ASSERT(menu);
 
@@ -286,8 +286,8 @@ static void inst_showPartitionWizard(util_HardDiskArray *hdds) {
 
         ad_restore();
         ad_okBox("Atenção", false,
-            "Lembrem-se de responder 'sim' ao prompt de formatação\n"
-            "se estiverem instalando em uma partição que acabaram de criar!");
+            "Lembre-se de responder 'sim' ao prompt de formatação\n"
+            "se estiver instalando em uma partição que acabou de criar!");
     }
 }
 
@@ -304,7 +304,7 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
     }
 
     while (1) {
-        ad_Menu *menu = ad_menuCreate("Destino da Instalação", "Selecione a partição para a qual vocês desejam instalar.", true);
+        ad_Menu *menu = ad_menuCreate("Destino da Instalação", "Selecione a partição para a qual você deseja instalar.", true);
 
         QI_ASSERT(menu);
 
@@ -327,7 +327,7 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
 
         if (ad_menuGetItemCount(menu) == 0) {
             ad_menuDestroy(menu);
-            ad_okBox("Erro", false, "Nenhuma partição foi encontrada! Particionem o disco e tentem novamente!");
+            ad_okBox("Erro", false, "Nenhuma partição foi encontrada! Particione o disco e tente novamente!");
             return NULL;
         }
 
@@ -359,8 +359,8 @@ static util_Partition *inst_showPartitionSelector(util_HardDiskArray *hdds) {
 /* Asks user if he wants to format selected partition. Returns true if so. */
 static inline int inst_formatPartitionDialog(util_Partition *part) {
     return ad_yesNoBox("Confirmar", true,
-        "Vocês escolheram a partição '%s'.\n"
-        "Gostariam de formatá-la antes da instalação (recomendado)?\n",
+        "Você escolheu a partição '%s'.\n"
+        "Gostaria de formatá-la antes da instalação (recomendado)?\n",
         part->device);
 }
 
@@ -374,8 +374,8 @@ static bool inst_formatPartition(util_Partition *part) {
 /* Asks user if he wants to overwrite the MBR and set the partition active. Returns true if so. */
 static inline int inst_askUserToOverwriteMBRAndSetActive(util_Partition *part) {
     return ad_yesNoBox("Confirmar", true,
-        "Vocês escolheram a partição '%s'.\n"
-        "Gostariam de sobrescrever o Master Boot Record (MBR)\n"
+        "Você escolheu a partição '%s'.\n"
+        "Gostaria de sobrescrever o Master Boot Record (MBR)\n"
         "e tornar a partição ativa (recomendado)?", 
         part->device);
 }
@@ -386,7 +386,7 @@ static inline void inst_showFailedFormat(util_Partition *part) {
         "A partição %s não pôde ser formatada.\n"
         "O último erro registrado foi: '%s'.\n"
         "Pode haver um problema com o disco.\n"
-        "Tentem particionar o disco novamente ou usar outra partição.\n"
+        "Tente particionar o disco novamente ou usar outra partição.\n"
         "Voltando para o seletor de partições.",
         part->device, strerror(errno));
 }
@@ -397,7 +397,7 @@ static inline void inst_showFailedMount(util_Partition *part) {
         "A partição %s não pôde ser acessada.\n"
         "O último erro registrado foi: '%s'.\n"
         "Pode haver um problema com o disco.\n"
-        "Vocês podem tentar formatar a partição.\n"
+        "Você pode tentar formatar a partição.\n"
         "Voltando para o seletor de partições.",
         part->device, strerror(errno));
 }
@@ -409,7 +409,7 @@ static inline void inst_showFailedCopy(const char *sourceFile) {
         "para esta variante do sistema operacional.\n"
         "O último erro registrado foi: '%s'.\n"
         "Pode haver um problema com o disco.\n"
-        "Vocês podem tentar usar outro disco de origem / destino.\n"
+        "Você pode tentar usar outro disco de origem / destino.\n"
         "Voltando para o seletor de partições.", 
         sourceFile,
         strerror(errno));
@@ -418,7 +418,7 @@ static inline void inst_showFailedCopy(const char *sourceFile) {
 
 /* Ask user if he wants to install driver package */
 static inline int inst_showDriverPrompt() {
-    return ad_yesNoBox("Seleção", true, "Vocês gostariam de instalar os drivers integrados?");
+    return ad_yesNoBox("Seleção", true, "Você gostaria de instalar os drivers integrados?");
 }
 
 /* Gets a MercyPak string (8 bit length + n chars) into dst. Must be a buffer of >= 256 bytes size. */
@@ -593,7 +593,7 @@ static inline bool inst_showSuccessAndAskForReboot() {
     // Returns TRUE (meaning reboot = true) if YES (0) happens. sorry for the confusion.
     ad_Menu *menu = ad_menuCreate("Instalador do Windows 9x: Sucesso", 
         "A instalação foi bem-sucedida.\n"
-        "Vocês gostariam de reiniciar ou sair para o shell?", 
+        "Você gostaria de reiniciar ou sair para o shell?", 
         false);
 
     QI_ASSERT(menu);
@@ -612,7 +612,7 @@ static inline bool inst_showSuccessAndAskForReboot() {
 static inline void inst_showFailMessage() {
     ad_okBox("Erro!", false,
         "Houve um problema durante a instalação! :(\n"
-        "Vocês podem pressionar ENTER para acessar o shell e inspecionar o problema.");
+        "Você pode pressionar ENTER para acessar o shell e inspecionar o problema.");
 }
 
 /* Asks user which version of the hardware detection scheme he wants */
@@ -628,7 +628,7 @@ static const char *inst_askUserForRegistryVariant(void) {
 
     int menuResult = ad_menuExecuteDirectly("Selecionar método de detecção de hardware", true, 
         util_arraySize(optionLabels), optionLabels, 
-        "Por favor, selecionem o método de detecção de hardware a ser usado.");
+        "Por favor, selecione o método de detecção de hardware a ser usado.");
 
     if (menuResult == AD_CANCELED) {
         return NULL;
