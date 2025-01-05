@@ -159,7 +159,7 @@ typedef enum {
 } inst_SetupAction;
 
 static inst_SetupAction inst_showMainMenu() {
-    ad_Menu *menu = ad_menuCreate("Instalado do Windows 9x: Menu Principal", "Para onde vocês querem ir hoje?", true);
+    ad_Menu *menu = ad_menuCreate("Instalador do Windows 9x: Menu Principal", "Para onde vocês querem ir hoje?", true);
     QI_ASSERT(menu);
 
 ad_menuAddItemFormatted(menu, "[INSTALAR] Instalar a variante do Sistema Operacional selecionada");
@@ -464,7 +464,7 @@ static bool inst_copyFiles(MappedFile *file, const char *installPath, const char
         return false;
     }
 
-    ad_ProgressBox *pbox = ad_progressBoxCreate("Windows 9x QuickInstall", dirCount, "Criando Diretórios (%s)...", filePromptString);
+    ad_ProgressBox *pbox = ad_progressBoxCreate("Instalador do Windows 9x", dirCount, "Criando Diretórios (%s)...", filePromptString);
 
     QI_ASSERT(pbox);
 
