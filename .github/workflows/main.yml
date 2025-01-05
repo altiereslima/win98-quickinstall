@@ -21,7 +21,7 @@ jobs:
         mkdir -p installer/anbui
         cd installer/anbui
         git init
-        git remote add origin https://github.com/oerg866/anbui.git
+        git remote add origin https://github.com/altiereslima/anbui.git
         git fetch --depth=1 origin master
         git checkout FETCH_HEAD
         cd ../..
