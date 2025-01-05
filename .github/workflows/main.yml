@@ -32,8 +32,9 @@ jobs:
 
     - name: Build Installer
       run: |
-        chmod +x installer/build.sh
-        ./installer/build.sh
+        cd installer
+        chmod +x build.sh
+        ./build.sh
 
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v4
