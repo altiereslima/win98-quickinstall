@@ -44,8 +44,11 @@ jobs:
         echo "Current directory after cd:"
         pwd
         ls -la
+        echo "Executing build.sh with debugging:"
+        set -x  # Enable trace mode
         chmod +x build.sh
         ./build.sh
+        set +x  # Disable trace mode
 
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v4
