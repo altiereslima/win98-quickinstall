@@ -15,10 +15,16 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        submodules: 'installer/anbui'
 
-    - name: List contents of installer/anbui
-      run: ls -la installer/anbui
+    - name: Download anbui repository
+      run: |
+        mkdir -p installer/anbui
+        cd installer/anbui
+        git init
+        git remote add origin https://github.com/oerg866/anbui.git
+        git fetch --depth=1 origin master
+        git checkout FETCH_HEAD
+        cd ../..
 
     - name: Download and Setup Cross Compiler
       run: |
