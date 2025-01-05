@@ -2,9 +2,9 @@ name: Build Win98 QuickInstall
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -65,7 +65,7 @@ jobs:
         tar xf i486-linux-musl-cross.tgz
 
         # Add cross-compiler to PATH
-        echo "Adding $(pwd)/i486-linux-musl-cross/bin to PATH" >> $GITHUB_ENV
+        echo "PATH=$PATH:$(pwd)/i486-linux-musl-cross/bin" >> $GITHUB_ENV
 
         # Create terminfo directory structure
         mkdir -p i486-linux-musl-cross/i486-linux-musl/share/terminfo/l
