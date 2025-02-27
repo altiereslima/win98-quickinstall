@@ -37,7 +37,7 @@ jobs:
           python sysprep.py --verbose True
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: win98-quickinstall-output
           path: _OUTPUT_
