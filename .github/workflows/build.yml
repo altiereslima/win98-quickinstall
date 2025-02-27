@@ -34,11 +34,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y genisoimage p7zip-full wine
           python -m pip install --upgrade pip
-          # Create requirements.txt if it doesn't exist
-          if [ ! -f requirements.txt ]; then
-            echo "# Project dependencies" > requirements.txt
-          fi
-          pip install -r requirements.txt
+          # Usar o arquivo requirements.txt do diretório sysprep
+          pip install -r sysprep/requirements.txt
 
       - name: Build ISO
         run: |
@@ -47,9 +44,27 @@ jobs:
           
           # Executar o script de preparação (ajuste conforme necessário)
           python sysprep.py --verbose True || echo "Build process may have encountered issues"
+          
+          # Criar um arquivo de informações sobre a build
+          echo "Build date: $(date)" > _OUTPUT_/build_info.txt
+          echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
+          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
 
-      - name: Upload artifacts
+      - name: Package artifacts
+        run: |
+          # Criar um arquivo ZIP com todo o conteúdo do _OUTPUT_
+          cd _OUTPUT_
+          zip -r ../win98-quickinstall-build.zip ./*
+          cd ..
+
+      - name: Upload build directory
         uses: actions/upload-artifact@v4
         with:
           name: win98-quickinstall-output
           path: _OUTPUT_
+          
+      - name: Upload packaged build
+        uses: actions/upload-artifact@v4
+        with:
+          name: win98-quickinstall-build
+          path: win98-quickinstall-build.zip
