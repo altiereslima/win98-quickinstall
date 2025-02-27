@@ -1,0 +1,43 @@
+name: Build Windows 9x QuickInstall
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    # Permite executar o workflow manualmente pela interface do GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y genisoimage p7zip-full wine
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build ISO
+        run: |
+          # Verificar se existem diretórios necessários ou criá-los
+          mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
+          
+          # Executar o script de preparação (ajuste conforme necessário)
+          python sysprep.py --verbose True
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: win98-quickinstall-output
+          path: _OUTPUT_
