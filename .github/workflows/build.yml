@@ -74,26 +74,26 @@ jobs:
           # Busybox
           if [ ! -f "busybox/build.sh" ]; then
             echo "Criando script build.sh para busybox"
-            cat > busybox/build.sh << 'EOF'
+            cat > busybox/build.sh << 'EOFBUSYBOX'
 #!/bin/bash
 make defconfig
 sed -i 's/^CONFIG_STATIC=.*/CONFIG_STATIC=y/' .config
 make -j$(nproc)
 make install
-EOF
+EOFBUSYBOX
             chmod +x busybox/build.sh
           fi
           
           # Dosfstools
           if [ ! -f "dosfstools/build.sh" ]; then
             echo "Criando script build.sh para dosfstools"
-            cat > dosfstools/build.sh << 'EOF'
+            cat > dosfstools/build.sh << 'EOFDOSFS'
 #!/bin/bash
 ./autogen.sh
 ./configure --prefix=$PWD/OUTPUT
 make -j$(nproc)
 make install
-EOF
+EOFDOSFS
             chmod +x dosfstools/build.sh
           fi
           
