@@ -16,9 +16,11 @@ jobs:
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://".insteadOf "git://"
+      
       - uses: actions/checkout@v3
         with:
           submodules: false
+      
       - name: Update submodules manually
         run: |
           git submodule init
@@ -34,21 +36,58 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y genisoimage p7zip-full wine
           python -m pip install --upgrade pip
-          # Usar o arquivo requirements.txt do diretório sysprep
           pip install -r sysprep/requirements.txt
+
+      - name: Check repository structure
+        run: |
+          echo "Repository structure:"
+          ls -la
+          echo "Looking for sysprep.py:"
+          find . -name "sysprep.py"
+          echo "Checking sysprep directory:"
+          ls -la sysprep/
 
       - name: Build ISO
         run: |
           # Verificar se existem diretórios necessários ou criá-los
           mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
           
-          # Executar o script de preparação (ajuste conforme necessário)
-          python sysprep.py --verbose True || echo "Build process may have encountered issues"
+          # Verificar qual é o caminho correto do script sysprep.py
+          if [ -f "sysprep.py" ]; then
+            SYSPREP_PATH="sysprep.py"
+          elif [ -f "sysprep/sysprep.py" ]; then
+            SYSPREP_PATH="sysprep/sysprep.py"
+          else
+            echo "Não foi possível encontrar o script sysprep.py"
+            exit 1
+          fi
+          
+          # Executar o script de preparação com parâmetros para criar uma ISO
+          echo "Executando: python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True"
+          python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True || echo "Build process may have encountered issues"
+          
+          # Verificar o que foi gerado
+          echo "Conteúdo do diretório _OUTPUT_:"
+          ls -la _OUTPUT_/
           
           # Criar um arquivo de informações sobre a build
           echo "Build date: $(date)" > _OUTPUT_/build_info.txt
           echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
           echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
+
+      - name: Copy framework files to output
+        run: |
+          # Copiar arquivos importantes do framework para o diretório de saída
+          mkdir -p _OUTPUT_/framework
+          cp -r sysprep/ _OUTPUT_/framework/
+          cp -r _DRIVER_/ _OUTPUT_/framework/ || echo "Driver directory not found"
+          cp -r _EXTRA_DRIVER_/ _OUTPUT_/framework/ || echo "Extra driver directory not found"
+          cp -r _EXTRA_CD_FILES_/ _OUTPUT_/framework/ || echo "Extra CD files directory not found"
+          cp *.md _OUTPUT_/framework/ || echo "No markdown files found"
+          
+          # Verificar o que foi copiado
+          echo "Conteúdo do diretório _OUTPUT_/framework:"
+          ls -la _OUTPUT_/framework/
 
       - name: Package artifacts
         run: |
@@ -68,3 +107,10 @@ jobs:
         with:
           name: win98-quickinstall-build
           path: win98-quickinstall-build.zip
+          
+      - name: Upload ISO if created
+        uses: actions/upload-artifact@v4
+        with:
+          name: win98-quickinstall-iso
+          path: win98-quickinstall.iso
+          if-no-files-found: ignore
