@@ -28,14 +28,21 @@ jobs:
           # Substituir URLs SSH por HTTPS no arquivo .gitmodules
           if [ -f ".gitmodules" ]; then
             sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-            sed -i 's|git://|https://|g' .gitmodules
+            sed -i 's|git://git.busybox.net/|https://git.busybox.net/|g' .gitmodules
             cat .gitmodules
           fi
           
-          # Inicializar e atualizar submodules um por um
+          # Inicializar submodules
           git submodule init
           
-          # Listar todos os submodules
+          # Atualizar submodules específicos um por um com tratamento de erro
+          for submodule in linux syslinux win98-driver-lib-base win98-driver-lib-extra dosfstools tiny-floppy-bootloader util-linux busybox pciutils "installer/anbui"; do
+            echo "Atualizando submodule: $submodule"
+            git submodule update --init --depth=1 "$submodule" || echo "Failed to update $submodule, continuing anyway"
+          done
+          
+          # Verificar status dos submodules
+          git submodule status
           git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read path; do
             echo "Atualizando submodule: $path"
             git submodule update --init --depth=1 "$path" || echo "Failed to update $path, continuing anyway"
