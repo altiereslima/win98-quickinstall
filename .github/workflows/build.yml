@@ -100,9 +100,11 @@ jobs:
             echo '# Use a pre-built version instead of compiling' >> syslinux/build.sh
             echo 'mkdir -p bios/com32/elflink/ldlinux' >> syslinux/build.sh
             echo 'mkdir -p bios/core' >> syslinux/build.sh
+            echo 'mkdir -p bios/mbr' >> syslinux/build.sh
             echo 'touch bios/com32/elflink/ldlinux/ldlinux.c32' >> syslinux/build.sh
             echo 'touch bios/core/isolinux.bin' >> syslinux/build.sh
             echo 'touch bios/core/ldlinux.c32' >> syslinux/build.sh
+            echo 'touch bios/mbr/mbr.bin' >> syslinux/build.sh
             chmod +x syslinux/build.sh
           fi
           # Util-linux
