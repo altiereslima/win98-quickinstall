@@ -74,24 +74,6 @@ jobs:
           
           cp *.md win98-quickinstall-framework/ || echo "No markdown files found"
           
-          # Criar um arquivo README específico para o pacote
-          cat > win98-quickinstall-framework/PACKAGE_README.txt << EOF
-Windows 9x QuickInstall Framework Package
-========================================
-
-Este pacote contém o framework do Windows 9x QuickInstall.
-Para usar, você precisa:
-
-1. Colocar os arquivos de um sistema Windows 98/ME já instalado na pasta _OS_ROOT_
-2. Colocar drivers a serem integrados na pasta _DRIVER_
-3. Colocar drivers extras na pasta _EXTRA_DRIVER_
-4. Colocar arquivos extras para o CD na pasta _EXTRA_CD_FILES_
-5. Executar o script sysprep.py para criar uma ISO:
-   python sysprep.py --iso win98-quickinstall.iso
-
-Consulte o README.md para instruções detalhadas.
-EOF
-          
           # Criar um arquivo ZIP com o pacote
           zip -r win98-quickinstall-framework.zip win98-quickinstall-framework/
           
