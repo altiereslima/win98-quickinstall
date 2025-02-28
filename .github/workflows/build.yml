@@ -96,33 +96,27 @@ jobs:
           # Syslinux
           if [ ! -f "syslinux/build.sh" ]; then
             echo "Criando script build.sh para syslinux"
-            cat > syslinux/build.sh << 'EOF'
-#!/bin/bash
-make -j$(nproc) bios
-EOF
+            echo '#!/bin/bash' > syslinux/build.sh
+            echo 'make -j$(nproc) bios' >> syslinux/build.sh
             chmod +x syslinux/build.sh
           fi
           
           # Util-linux
           if [ ! -f "util-linux/build.sh" ]; then
             echo "Criando script build.sh para util-linux"
-            cat > util-linux/build.sh << 'EOF'
-#!/bin/bash
-./autogen.sh
-./configure --prefix=$PWD/OUTPUT
-make -j$(nproc)
-make install
-EOF
+            echo '#!/bin/bash' > util-linux/build.sh
+            echo './autogen.sh' >> util-linux/build.sh
+            echo './configure --prefix=$PWD/OUTPUT' >> util-linux/build.sh
+            echo 'make -j$(nproc)' >> util-linux/build.sh
+            echo 'make install' >> util-linux/build.sh
             chmod +x util-linux/build.sh
           fi
           
           # Pciutils
           if [ ! -f "pciutils/build.sh" ]; then
             echo "Criando script build.sh para pciutils"
-            cat > pciutils/build.sh << 'EOF'
-#!/bin/bash
-make -j$(nproc)
-EOF
+            echo '#!/bin/bash' > pciutils/build.sh
+            echo 'make -j$(nproc)' >> pciutils/build.sh
             chmod +x pciutils/build.sh
           fi
           
