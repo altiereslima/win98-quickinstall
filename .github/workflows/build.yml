@@ -32,139 +32,73 @@ jobs:
             cat .gitmodules
           fi
           
-          # Inicializar submodules
+          # Inicializar e atualizar todos os submodules
           git submodule init
-          
-          # Primeiro tentar o util-linux que é especialmente importante
-          echo "Atualizando submodule util-linux (importante)"
-          git submodule update --init --depth=1 util-linux || echo "Failed to update util-linux, continuing anyway"
-          
-          # Atualizar os outros submodules específicos um por um com tratamento de erro
-          for submodule in linux syslinux win98-driver-lib-base win98-driver-lib-extra dosfstools tiny-floppy-bootloader busybox pciutils "installer/anbui"; do
-            echo "Atualizando submodule: $submodule"
-            git submodule update --init --depth=1 "$submodule" || echo "Failed to update $submodule, continuing anyway"
-          done
+          git submodule update --init --recursive --depth=1
           
           # Verificar status dos submodules
           git submodule status
-          
-      - name: Build util-linux
+      
+      - name: Install build dependencies
         run: |
-          echo "Compilando util-linux..."
-          if [ -d "util-linux" ]; then
-            cd util-linux
-            ./autogen.sh || echo "autogen.sh falhou, continuando..."
-            ./configure --prefix=/usr || echo "configure falhou, continuando..."
-            make || echo "make falhou, continuando..."
-            cd ..
-            
-            # Criar diretório para os binários compilados
-            mkdir -p compiled_bins
-            
-            # Copiar binários compilados
-            find util-linux -type f -executable -not -path "*/\.*" -exec cp -v {} compiled_bins/ \; || echo "Nenhum binário encontrado"
-            
-            echo "Binários compilados:"
-            ls -la compiled_bins/
-          else
-            echo "Diretório util-linux não encontrado"
-          fi
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config libblkid-dev libmount-dev libncurses-dev xz-utils cpio objcopy binutils
+      
+      - name: Setup cross-compiler
+        run: |
+          # Criar diretório para o cross-compiler
+          mkdir -p i486-linux-musl-cross
           
+          # Baixar e extrair o cross-compiler
+          wget -q https://musl.cc/i486-linux-musl-cross.tgz -O i486-linux-musl-cross.tgz
+          tar -xf i486-linux-musl-cross.tgz -C i486-linux-musl-cross --strip-components=1
+          
+          # Adicionar ao PATH
+          echo "PATH=$PATH:$PWD/i486-linux-musl-cross/bin" >> $GITHUB_ENV
+      
+      - name: Prepare build scripts
+        run: |
+          # Verificar se os scripts build.sh existem nos submódulos e torná-los executáveis
+          for dir in busybox dosfstools syslinux util-linux tiny-floppy-bootloader installer dosflop pciutils; do
+            if [ -f "$dir/build.sh" ]; then
+              chmod +x "$dir/build.sh"
+              echo "Script $dir/build.sh encontrado e tornado executável"
+            else
+              echo "AVISO: Script $dir/build.sh não encontrado"
+            fi
+          done
+          
+          # Tornar o script principal executável
+          chmod +x build.sh
+      
+      - name: Run build script
+        run: |
+          # Modificar o script para não usar sudo
+          sed -i 's/sudo //g' build.sh
+          
+          # Executar o script de build
+          ./build.sh
+      
       - name: Create framework package
         run: |
           # Criar um diretório para o pacote completo
           mkdir -p win98-quickinstall-framework
           
           # Copiar arquivos importantes para o pacote
-          cp -r sysprep/ win98-quickinstall-framework/ || echo "sysprep directory not found"
-          
-          # Copiar diretórios importantes
-          mkdir -p win98-quickinstall-framework/_OS_ROOT_
-          mkdir -p win98-quickinstall-framework/_DRIVER_
-          mkdir -p win98-quickinstall-framework/_EXTRA_DRIVER_
-          mkdir -p win98-quickinstall-framework/_EXTRA_CD_FILES_
-          mkdir -p win98-quickinstall-framework/_OUTPUT_
-          
-          # Criar diretório para binários e copiar os binários compilados
-          mkdir -p win98-quickinstall-framework/bin
-          if [ -d "compiled_bins" ]; then
-            cp -r compiled_bins/* win98-quickinstall-framework/bin/ || echo "Nenhum binário para copiar"
-            echo "Binários copiados para o pacote"
-          fi
-          
-          # Verificar se existem arquivos binários em outros locais
-          if [ -d "__BIN__" ]; then
-            cp -r __BIN__/ win98-quickinstall-framework/
-            echo "Copiada pasta __BIN__"
-          fi
-          
-          cp *.md win98-quickinstall-framework/ || echo "No markdown files found"
+          cp -r __BIN__/* win98-quickinstall-framework/ || echo "BIN directory not found"
           
           # Criar um arquivo ZIP com o pacote
           zip -r win98-quickinstall-framework.zip win98-quickinstall-framework/
-          
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y genisoimage p7zip-full wine
-          python -m pip install --upgrade pip
-          pip install -r sysprep/requirements.txt || echo "Requirements file not found"
-          
-      - name: Check repository structure
-        run: |
-          echo "Repository structure:"
-          ls -la
-          echo "Looking for sysprep.py:"
-          find . -name "sysprep.py"
-          echo "Checking sysprep directory:"
-          ls -la sysprep/ || echo "sysprep directory not found"
-          
-      - name: Prepare build environment
-        run: |
-          # Verificar se existem diretórios necessários ou criá-los
-          mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
-          
-          # Criar um diretório OS_ROOT mínimo para teste
-          mkdir -p _OS_ROOT_/WINDOWS
-          touch _OS_ROOT_/WINDOWS/WIN.COM
-          
-          # Verificar qual é o caminho correto do script sysprep.py
-          SYSPREP_PATH=$(find . -name "sysprep.py" | head -1)
-          if [ -z "$SYSPREP_PATH" ]; then
-            echo "Não foi possível encontrar o script sysprep.py"
-            exit 1
-          fi
-          
-          echo "Encontrado script sysprep.py em: $SYSPREP_PATH"
-          
-          # Não vamos tentar criar uma ISO, apenas preparar os arquivos
-          echo "Pulando a criação da ISO, apenas preparando os arquivos do framework"
-          
-          # Criar um arquivo de informações sobre a build
-          echo "Build date: $(date)" > _OUTPUT_/build_info.txt
-          echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
-          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
-
+      
       - name: Upload framework package
         uses: actions/upload-artifact@v4
         with:
           name: win98-quickinstall-framework
           path: win98-quickinstall-framework.zip
           
-      - name: Upload build directory
+      - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
           name: win98-quickinstall-output
-          path: _OUTPUT_
-          
-      - name: Upload ISO if created
-        uses: actions/upload-artifact@v4
-        with:
-          name: win98-quickinstall-iso
-          path: win98-quickinstall.iso
-          if-no-files-found: ignore
+          path: Windows98QuickInstall_*.zip
+          if-no-files-found: warn
