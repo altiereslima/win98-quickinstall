@@ -106,7 +106,7 @@ EOF
           sudo apt-get install -y genisoimage p7zip-full wine
           python -m pip install --upgrade pip
           pip install -r sysprep/requirements.txt || echo "Requirements file not found"
-
+          
       - name: Check repository structure
         run: |
           echo "Repository structure:"
@@ -115,13 +115,11 @@ EOF
           find . -name "sysprep.py"
           echo "Checking sysprep directory:"
           ls -la sysprep/ || echo "sysprep directory not found"
-
-      - name: Build ISO
+          
+      - name: Prepare build environment
         run: |
-          - name: Prepare build environment
-                run: |
-                  # Verificar se existem diretórios necessários ou criá-los
-                  mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
+          # Verificar se existem diretórios necessários ou criá-los
+          mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
           
           # Criar um diretório OS_ROOT mínimo para teste
           mkdir -p _OS_ROOT_/WINDOWS
@@ -138,17 +136,6 @@ EOF
           
           # Não vamos tentar criar uma ISO, apenas preparar os arquivos
           echo "Pulando a criação da ISO, apenas preparando os arquivos do framework"
-          
-          # Criar um arquivo de informações sobre a build
-          echo "Build date: $(date)" > _OUTPUT_/build_info.txt
-          echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
-          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
-          echo "Executando: python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True"
-          python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True || echo "Build process may have encountered issues"
-          
-          # Verificar o que foi gerado
-          echo "Conteúdo do diretório _OUTPUT_:"
-          ls -la _OUTPUT_/ || echo "_OUTPUT_ directory is empty or not found"
           
           # Criar um arquivo de informações sobre a build
           echo "Build date: $(date)" > _OUTPUT_/build_info.txt
