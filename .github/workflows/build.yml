@@ -48,11 +48,30 @@ jobs:
           
           # Copiar arquivos importantes para o pacote
           cp -r sysprep/ win98-quickinstall-framework/ || echo "sysprep directory not found"
+          
+          # Copiar diretórios importantes
           mkdir -p win98-quickinstall-framework/_OS_ROOT_
           mkdir -p win98-quickinstall-framework/_DRIVER_
           mkdir -p win98-quickinstall-framework/_EXTRA_DRIVER_
           mkdir -p win98-quickinstall-framework/_EXTRA_CD_FILES_
           mkdir -p win98-quickinstall-framework/_OUTPUT_
+          
+          # Copiar a pasta cdromroot e seus subdiretórios, incluindo bin
+          if [ -d "cdromroot" ]; then
+            cp -r cdromroot/ win98-quickinstall-framework/
+            echo "Copiada pasta cdromroot e seus subdiretórios"
+          else
+            echo "Pasta cdromroot não encontrada"
+            # Criar a estrutura mínima
+            mkdir -p win98-quickinstall-framework/cdromroot/bin
+          fi
+          
+          # Verificar se existem arquivos binários em outros locais
+          if [ -d "__BIN__" ]; then
+            cp -r __BIN__/ win98-quickinstall-framework/
+            echo "Copiada pasta __BIN__"
+          fi
+          
           cp *.md win98-quickinstall-framework/ || echo "No markdown files found"
           
           # Criar um arquivo README específico para o pacote
