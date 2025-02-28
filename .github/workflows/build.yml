@@ -146,6 +146,9 @@ jobs:
           sed -i 's/mknod dev\/console c 5 1/echo "Skipping mknod dev\/console c 5 1"/' build.sh
           sed -i 's/mknod dev\/null c 1 3/echo "Skipping mknod dev\/null c 1 3"/' build.sh
           
+          # Modificar o script para pular a cópia do arquivo terminfo
+          sed -i 's|cp "$PREFIX\/share\/terminfo\/l\/linux" \.\/usr\/lib\/terminfo\/l\/linux|echo "Skipping terminfo copy"|' build.sh
+          
           # Criar diretório supplement se não existir
           mkdir -p supplement/firmware
           
@@ -166,6 +169,7 @@ jobs:
           if [ ! -f "dosflop/build.sh" ]; then
             echo '#!/bin/bash' > dosflop/build.sh
             echo 'echo "Dummy dosflop build"' >> dosflop/build.sh
+            echo 'touch dosflop.img' >> dosflop/build.sh
             chmod +x dosflop/build.sh
           fi
           
@@ -174,6 +178,7 @@ jobs:
           if [ ! -f "installer/build.sh" ]; then
             echo '#!/bin/bash' > installer/build.sh
             echo 'echo "Dummy installer build"' >> installer/build.sh
+            echo 'touch lunmercy' >> installer/build.sh
             chmod +x installer/build.sh
           fi
           
