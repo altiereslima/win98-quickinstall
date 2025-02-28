@@ -80,7 +80,7 @@ Windows 9x QuickInstall Framework Package
 ========================================
 
 Este pacote contém o framework do Windows 9x QuickInstall.
-Para usar, você precisa:
+Para usar, você precisa: 
 
 1. Colocar os arquivos de um sistema Windows 98/ME já instalado na pasta _OS_ROOT_
 2. Colocar drivers a serem integrados na pasta _DRIVER_
