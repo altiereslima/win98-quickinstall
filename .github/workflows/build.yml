@@ -35,18 +35,40 @@ jobs:
           # Inicializar submodules
           git submodule init
           
-          # Atualizar submodules específicos um por um com tratamento de erro
-          for submodule in linux syslinux win98-driver-lib-base win98-driver-lib-extra dosfstools tiny-floppy-bootloader util-linux busybox pciutils "installer/anbui"; do
+          # Primeiro tentar o util-linux que é especialmente importante
+          echo "Atualizando submodule util-linux (importante)"
+          git submodule update --init --depth=1 util-linux || echo "Failed to update util-linux, continuing anyway"
+          
+          # Atualizar os outros submodules específicos um por um com tratamento de erro
+          for submodule in linux syslinux win98-driver-lib-base win98-driver-lib-extra dosfstools tiny-floppy-bootloader busybox pciutils "installer/anbui"; do
             echo "Atualizando submodule: $submodule"
             git submodule update --init --depth=1 "$submodule" || echo "Failed to update $submodule, continuing anyway"
           done
           
           # Verificar status dos submodules
           git submodule status
-          git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read path; do
-            echo "Atualizando submodule: $path"
-            git submodule update --init --depth=1 "$path" || echo "Failed to update $path, continuing anyway"
-          done
+          
+      - name: Build util-linux
+        run: |
+          echo "Compilando util-linux..."
+          if [ -d "util-linux" ]; then
+            cd util-linux
+            ./autogen.sh || echo "autogen.sh falhou, continuando..."
+            ./configure --prefix=/usr || echo "configure falhou, continuando..."
+            make || echo "make falhou, continuando..."
+            cd ..
+            
+            # Criar diretório para os binários compilados
+            mkdir -p compiled_bins
+            
+            # Copiar binários compilados
+            find util-linux -type f -executable -not -path "*/\.*" -exec cp -v {} compiled_bins/ \; || echo "Nenhum binário encontrado"
+            
+            echo "Binários compilados:"
+            ls -la compiled_bins/
+          else
+            echo "Diretório util-linux não encontrado"
+          fi
           
       - name: Create framework package
         run: |
@@ -63,14 +85,11 @@ jobs:
           mkdir -p win98-quickinstall-framework/_EXTRA_CD_FILES_
           mkdir -p win98-quickinstall-framework/_OUTPUT_
           
-          # Copiar a pasta cdromroot e seus subdiretórios, incluindo bin
-          if [ -d "cdromroot" ]; then
-            cp -r cdromroot/ win98-quickinstall-framework/
-            echo "Copiada pasta cdromroot e seus subdiretórios"
-          else
-            echo "Pasta cdromroot não encontrada"
-            # Criar a estrutura mínima
-            mkdir -p win98-quickinstall-framework/cdromroot/bin
+          # Criar diretório para binários e copiar os binários compilados
+          mkdir -p win98-quickinstall-framework/bin
+          if [ -d "compiled_bins" ]; then
+            cp -r compiled_bins/* win98-quickinstall-framework/bin/ || echo "Nenhum binário para copiar"
+            echo "Binários copiados para o pacote"
           fi
           
           # Verificar se existem arquivos binários em outros locais
