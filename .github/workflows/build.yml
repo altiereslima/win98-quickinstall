@@ -149,6 +149,9 @@ jobs:
           # Modificar o script para pular a cópia do arquivo terminfo
           sed -i 's|cp "$PREFIX\/share\/terminfo\/l\/linux" \.\/usr\/lib\/terminfo\/l\/linux|echo "Skipping terminfo copy"|' build.sh
           
+          # Modificar o script para pular o chown
+          sed -i 's/chown -R root:root \./echo "Skipping chown -R root:root ."/' build.sh
+          
           # Criar diretório supplement se não existir
           mkdir -p supplement/firmware
           
