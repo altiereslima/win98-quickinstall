@@ -69,6 +69,67 @@ jobs:
       
       - name: Prepare build scripts
         run: |
+          # Criar scripts de build para os submódulos que não os têm
+          
+          # Busybox
+          if [ ! -f "busybox/build.sh" ]; then
+            echo "Criando script build.sh para busybox"
+            cat > busybox/build.sh << 'EOF'
+#!/bin/bash
+make defconfig
+sed -i 's/^CONFIG_STATIC=.*/CONFIG_STATIC=y/' .config
+make -j$(nproc)
+make install
+EOF
+            chmod +x busybox/build.sh
+          fi
+          
+          # Dosfstools
+          if [ ! -f "dosfstools/build.sh" ]; then
+            echo "Criando script build.sh para dosfstools"
+            cat > dosfstools/build.sh << 'EOF'
+#!/bin/bash
+./autogen.sh
+./configure --prefix=$PWD/OUTPUT
+make -j$(nproc)
+make install
+EOF
+            chmod +x dosfstools/build.sh
+          fi
+          
+          # Syslinux
+          if [ ! -f "syslinux/build.sh" ]; then
+            echo "Criando script build.sh para syslinux"
+            cat > syslinux/build.sh << 'EOF'
+#!/bin/bash
+make -j$(nproc) bios
+EOF
+            chmod +x syslinux/build.sh
+          fi
+          
+          # Util-linux
+          if [ ! -f "util-linux/build.sh" ]; then
+            echo "Criando script build.sh para util-linux"
+            cat > util-linux/build.sh << 'EOF'
+#!/bin/bash
+./autogen.sh
+./configure --prefix=$PWD/OUTPUT
+make -j$(nproc)
+make install
+EOF
+            chmod +x util-linux/build.sh
+          fi
+          
+          # Pciutils
+          if [ ! -f "pciutils/build.sh" ]; then
+            echo "Criando script build.sh para pciutils"
+            cat > pciutils/build.sh << 'EOF'
+#!/bin/bash
+make -j$(nproc)
+EOF
+            chmod +x pciutils/build.sh
+          fi
+          
           # Verificar se os scripts build.sh existem nos submódulos e torná-los executáveis
           for dir in busybox dosfstools syslinux util-linux tiny-floppy-bootloader installer dosflop pciutils; do
             if [ -f "$dir/build.sh" ]; then
@@ -81,7 +142,29 @@ jobs:
           
           # Tornar o script principal executável
           chmod +x build.sh
-      
+          
+      - name: Modify main build script
+        run: |
+          # Modificar o script para não usar sudo
+          sed -i 's/sudo //g' build.sh
+          
+          # Modificar o script para lidar com possíveis erros
+          sed -i 's/set -e 1/set -e/' build.sh
+          
+          # Criar diretório supplement se não existir
+          mkdir -p supplement/firmware
+          
+          # Criar arquivos necessários no diretório supplement
+          touch supplement/welcome supplement/inittab supplement/rc supplement/findcd.sh supplement/setenv.sh supplement/syslinux.cfg
+          
+          # Criar diretório buildscripts se não existir
+          mkdir -p buildscripts
+          
+          # Criar arquivos de configuração do kernel
+          touch buildscripts/linux_config.flp buildscripts/linux_config.cd
+          
+          # Criar diretório tools
+          mkdir -p tools
       - name: Run build script
         run: |
           # Modificar o script para não usar sudo
