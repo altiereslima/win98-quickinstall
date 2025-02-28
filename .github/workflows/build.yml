@@ -29,12 +29,22 @@ jobs:
           if [ -f ".gitmodules" ]; then
             sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
             sed -i 's|git://git.busybox.net/|https://git.busybox.net/|g' .gitmodules
+            sed -i 's|git://git.code.sf.net/|https://git.code.sf.net/|g' .gitmodules
             cat .gitmodules
           fi
           
-          # Inicializar e atualizar todos os submodules
+          # Inicializar submodules
           git submodule init
-          git submodule update --init --recursive --depth=1
+          
+          # Atualizar submodules um por um, exceto syslinux/gnu-efi que está causando problemas
+          for submodule in busybox dosfstools "installer/anbui" linux pciutils tiny-floppy-bootloader util-linux win98-driver-lib-base win98-driver-lib-extra; do
+            echo "Atualizando submodule: $submodule"
+            git submodule update --init --depth=1 "$submodule" || echo "Failed to update $submodule, continuing anyway"
+          done
+          
+          # Tratamento especial para syslinux
+          echo "Atualizando syslinux sem recursão"
+          git submodule update --init --depth=1 syslinux || echo "Failed to update syslinux, continuing anyway"
           
           # Verificar status dos submodules
           git submodule status
