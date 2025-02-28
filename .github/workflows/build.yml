@@ -112,17 +112,25 @@ jobs:
             echo 'set +e' >> util-linux/build.sh
             echo './autogen.sh || echo "Autogen failed, creating dummy output"' >> util-linux/build.sh
             echo 'if [ ! -f "./configure" ]; then' >> util-linux/build.sh
-            echo '  mkdir -p OUTPUT/bin' >> util-linux/build.sh
+            echo '  mkdir -p OUTPUT/bin OUTPUT/sbin' >> util-linux/build.sh
             echo '  touch OUTPUT/bin/blkid' >> util-linux/build.sh
             echo '  touch OUTPUT/bin/fdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/fdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/blkid' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/sfdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/cfdisk' >> util-linux/build.sh
             echo '  exit 0' >> util-linux/build.sh
             echo 'fi' >> util-linux/build.sh
             echo './configure --prefix=$PWD/OUTPUT' >> util-linux/build.sh
             echo 'make -j$(nproc) || echo "Make failed, creating dummy output"' >> util-linux/build.sh
             echo 'if [ ! -f "fdisk/fdisk" ]; then' >> util-linux/build.sh
-            echo '  mkdir -p OUTPUT/bin' >> util-linux/build.sh
+            echo '  mkdir -p OUTPUT/bin OUTPUT/sbin' >> util-linux/build.sh
             echo '  touch OUTPUT/bin/blkid' >> util-linux/build.sh
             echo '  touch OUTPUT/bin/fdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/fdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/blkid' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/sfdisk' >> util-linux/build.sh
+            echo '  touch OUTPUT/sbin/cfdisk' >> util-linux/build.sh
             echo 'else' >> util-linux/build.sh
             echo '  make install' >> util-linux/build.sh
             echo 'fi' >> util-linux/build.sh
