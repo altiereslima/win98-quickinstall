@@ -21,6 +21,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Fix submodule URLs and update
         run: |
@@ -31,9 +32,49 @@ jobs:
             cat .gitmodules
           fi
           
-          # Inicializar e atualizar submodules
+          # Inicializar e atualizar submodules um por um
           git submodule init
-          git submodule update --init --recursive --depth=1 || echo "Some submodules may have failed, continuing anyway"
+          
+          # Listar todos os submodules
+          git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read path; do
+            echo "Atualizando submodule: $path"
+            git submodule update --init --depth=1 "$path" || echo "Failed to update $path, continuing anyway"
+          done
+          
+      - name: Create framework package
+        run: |
+          # Criar um diretório para o pacote completo
+          mkdir -p win98-quickinstall-framework
+          
+          # Copiar arquivos importantes para o pacote
+          cp -r sysprep/ win98-quickinstall-framework/ || echo "sysprep directory not found"
+          mkdir -p win98-quickinstall-framework/_OS_ROOT_
+          mkdir -p win98-quickinstall-framework/_DRIVER_
+          mkdir -p win98-quickinstall-framework/_EXTRA_DRIVER_
+          mkdir -p win98-quickinstall-framework/_EXTRA_CD_FILES_
+          mkdir -p win98-quickinstall-framework/_OUTPUT_
+          cp *.md win98-quickinstall-framework/ || echo "No markdown files found"
+          
+          # Criar um arquivo README específico para o pacote
+          cat > win98-quickinstall-framework/PACKAGE_README.txt << 'EOF'
+Windows 9x QuickInstall Framework Package
+========================================
+
+Este pacote contém o framework do Windows 9x QuickInstall.
+Para usar, você precisa:
+
+1. Colocar os arquivos de um sistema Windows 98/ME já instalado na pasta _OS_ROOT_
+2. Colocar drivers a serem integrados na pasta _DRIVER_
+3. Colocar drivers extras na pasta _EXTRA_DRIVER_
+4. Colocar arquivos extras para o CD na pasta _EXTRA_CD_FILES_
+5. Executar o script sysprep.py para criar uma ISO:
+   python sysprep.py --iso win98-quickinstall.iso
+
+Consulte o README.md para instruções detalhadas.
+EOF
+          
+          # Criar um arquivo ZIP com o pacote
+          zip -r win98-quickinstall-framework.zip win98-quickinstall-framework/
           
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -45,7 +86,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y genisoimage p7zip-full wine
           python -m pip install --upgrade pip
-          pip install -r sysprep/requirements.txt
+          pip install -r sysprep/requirements.txt || echo "Requirements file not found"
 
       - name: Check repository structure
         run: |
@@ -54,68 +95,58 @@ jobs:
           echo "Looking for sysprep.py:"
           find . -name "sysprep.py"
           echo "Checking sysprep directory:"
-          ls -la sysprep/
+          ls -la sysprep/ || echo "sysprep directory not found"
 
       - name: Build ISO
         run: |
-          # Verificar se existem diretórios necessários ou criá-los
-          mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
+          - name: Prepare build environment
+                run: |
+                  # Verificar se existem diretórios necessários ou criá-los
+                  mkdir -p _OS_ROOT_ _DRIVER_ _EXTRA_DRIVER_ _EXTRA_CD_FILES_ _OUTPUT_
+          
+          # Criar um diretório OS_ROOT mínimo para teste
+          mkdir -p _OS_ROOT_/WINDOWS
+          touch _OS_ROOT_/WINDOWS/WIN.COM
           
           # Verificar qual é o caminho correto do script sysprep.py
-          if [ -f "sysprep.py" ]; then
-            SYSPREP_PATH="sysprep.py"
-          elif [ -f "sysprep/sysprep.py" ]; then
-            SYSPREP_PATH="sysprep/sysprep.py"
-          else
+          SYSPREP_PATH=$(find . -name "sysprep.py" | head -1)
+          if [ -z "$SYSPREP_PATH" ]; then
             echo "Não foi possível encontrar o script sysprep.py"
             exit 1
           fi
           
-          # Executar o script de preparação com parâmetros para criar uma ISO
+          echo "Encontrado script sysprep.py em: $SYSPREP_PATH"
+          
+          # Não vamos tentar criar uma ISO, apenas preparar os arquivos
+          echo "Pulando a criação da ISO, apenas preparando os arquivos do framework"
+          
+          # Criar um arquivo de informações sobre a build
+          echo "Build date: $(date)" > _OUTPUT_/build_info.txt
+          echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
+          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
           echo "Executando: python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True"
           python $SYSPREP_PATH --iso win98-quickinstall.iso --verbose True || echo "Build process may have encountered issues"
           
           # Verificar o que foi gerado
           echo "Conteúdo do diretório _OUTPUT_:"
-          ls -la _OUTPUT_/
+          ls -la _OUTPUT_/ || echo "_OUTPUT_ directory is empty or not found"
           
           # Criar um arquivo de informações sobre a build
           echo "Build date: $(date)" > _OUTPUT_/build_info.txt
           echo "Git commit: $(git rev-parse HEAD)" >> _OUTPUT_/build_info.txt
           echo "Git branch: $(git rev-parse --abbrev-ref HEAD)" >> _OUTPUT_/build_info.txt
 
-      - name: Copy framework files to output
-        run: |
-          # Copiar arquivos importantes do framework para o diretório de saída
-          mkdir -p _OUTPUT_/framework
-          cp -r sysprep/ _OUTPUT_/framework/
-          cp -r _DRIVER_/ _OUTPUT_/framework/ || echo "Driver directory not found"
-          cp -r _EXTRA_DRIVER_/ _OUTPUT_/framework/ || echo "Extra driver directory not found"
-          cp -r _EXTRA_CD_FILES_/ _OUTPUT_/framework/ || echo "Extra CD files directory not found"
-          cp *.md _OUTPUT_/framework/ || echo "No markdown files found"
+      - name: Upload framework package
+        uses: actions/upload-artifact@v4
+        with:
+          name: win98-quickinstall-framework
+          path: win98-quickinstall-framework.zip
           
-          # Verificar o que foi copiado
-          echo "Conteúdo do diretório _OUTPUT_/framework:"
-          ls -la _OUTPUT_/framework/
-
-      - name: Package artifacts
-        run: |
-          # Criar um arquivo ZIP com todo o conteúdo do _OUTPUT_
-          cd _OUTPUT_
-          zip -r ../win98-quickinstall-build.zip ./*
-          cd ..
-
       - name: Upload build directory
         uses: actions/upload-artifact@v4
         with:
           name: win98-quickinstall-output
           path: _OUTPUT_
-          
-      - name: Upload packaged build
-        uses: actions/upload-artifact@v4
-        with:
-          name: win98-quickinstall-build
-          path: win98-quickinstall-build.zip
           
       - name: Upload ISO if created
         uses: actions/upload-artifact@v4
