@@ -48,11 +48,12 @@ jobs:
           
           # Verificar status dos submodules
           git submodule status
-      
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential autoconf automake libtool pkg-config libblkid-dev libmount-dev libncurses-dev xz-utils cpio objcopy binutils
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
+            libblkid-dev libmount-dev libncurses-dev xz-utils cpio binutils \
+            gcc-multilib nasm uuid-dev
       
       - name: Setup cross-compiler
         run: |
