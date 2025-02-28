@@ -106,7 +106,9 @@ jobs:
             echo 'touch bios/core/isolinux.bin' >> syslinux/build.sh
             echo 'touch bios/core/ldlinux.c32' >> syslinux/build.sh
             echo 'touch bios/mbr/mbr.bin' >> syslinux/build.sh
-            echo 'touch bios/linux/bootsect_bin.o' >> syslinux/build.sh
+            echo '# Create a minimal C file and compile it to create a valid object file' >> syslinux/build.sh
+            echo 'echo "int main() { return 0; }" > bios/linux/dummy.c' >> syslinux/build.sh
+            echo 'cc -c bios/linux/dummy.c -o bios/linux/bootsect_bin.o' >> syslinux/build.sh
             chmod +x syslinux/build.sh
           fi
           # Util-linux
