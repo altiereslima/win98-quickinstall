@@ -53,7 +53,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
             libblkid-dev libmount-dev libncurses-dev xz-utils cpio binutils \
-            gcc-multilib nasm uuid-dev lzop gettext autopoint mtools
+            gcc-multilib nasm uuid-dev lzop gettext autopoint mtools \
+            libncursesw5-dev libselinux1-dev libsepol-dev
       
       - name: Setup cross-compiler
         run: |
@@ -116,8 +117,33 @@ jobs:
           if [ ! -f "util-linux/build.sh" ]; then
             echo "Criando script build.sh para util-linux"
             echo '#!/bin/bash' > util-linux/build.sh
-            echo 'set +e' >> util-linux/build.sh
-            echo '# Tentar compilar normalmente primeiro' >> util-linux/build.sh
+            echo 'set -e' >> util-linux/build.sh
+            echo 'export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig' >> util-linux/build.sh
+            echo 'export BLKID_CFLAGS="-I/usr/include/blkid"' >> util-linux/build.sh
+            echo 'export BLKID_LIBS="-lblkid"' >> util-linux/build.sh
+            echo 'export MOUNT_CFLAGS="-I/usr/include/mount"' >> util-linux/build.sh
+            echo 'export MOUNT_LIBS="-lmount"' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo '# Clean any previous build artifacts' >> util-linux/build.sh
+            echo 'rm -rf OUTPUT fdisk misc-utils' >> util-linux/build.sh
+            echo 'mkdir -p OUTPUT/{bin,sbin} fdisk misc-utils' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo './autogen.sh' >> util-linux/build.sh
+            echo 'if [ -f "./configure" ]; then' >> util-linux/build.sh
+            echo '  CFLAGS="-I/usr/include/blkid -I/usr/include/mount" \' >> util-linux/build.sh
+            echo '  LDFLAGS="-L/usr/lib/x86_64-linux-gnu" \' >> util-linux/build.sh
+            echo '  ./configure \' >> util-linux/build.sh
+            echo '    --prefix=$PWD/OUTPUT \' >> util-linux/build.sh
+            echo '    --without-python \' >> util-linux/build.sh
+            echo '    --disable-all-programs \' >> util-linux/build.sh
+            echo '    --enable-libblkid \' >> util-linux/build.sh
+            echo '    --enable-libmount \' >> util-linux/build.sh
+            echo '    --enable-libuuid || exit 1' >> util-linux/build.sh
+            echo '  make -j$(nproc) || exit 1' >> util-linux/build.sh
+            echo '  make install || exit 1' >> util-linux/build.sh
+            echo 'else' >> util-linux/build.sh
+            echo '  echo "Configure script not found, creating dummy binaries..."' >> util-linux/build.sh
+            echo '  # Tentar compilar normalmente primeiro' >> util-linux/build.sh
             echo 'mkdir -p fdisk misc-utils OUTPUT/bin OUTPUT/sbin' >> util-linux/build.sh
             echo 'export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig' >> util-linux/build.sh
             echo 'export BLKID_CFLAGS="-I/usr/include/blkid"' >> util-linux/build.sh
