@@ -114,6 +114,28 @@ jobs:
             echo "Criando script build.sh para util-linux"
             echo '#!/bin/bash' > util-linux/build.sh
             echo 'set -e' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo '# Create necessary directories and files' >> util-linux/build.sh
+            echo 'mkdir -p misc-utils fdisk OUTPUT/{bin,sbin}' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo '# Create Makemodule.am files' >> util-linux/build.sh
+            echo 'cat > misc-utils/Makemodule.am << EOF' >> util-linux/build.sh
+            echo 'sbin_PROGRAMS += blkid' >> util-linux/build.sh
+            echo 'dist_man_MANS += misc-utils/blkid.8' >> util-linux/build.sh
+            echo 'blkid_SOURCES = misc-utils/blkid.c' >> util-linux/build.sh
+            echo 'blkid_LDADD = \$(LDADD) libblkid.la' >> util-linux/build.sh
+            echo 'blkid_CFLAGS = \$(AM_CFLAGS)' >> util-linux/build.sh
+            echo 'EOF' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo 'cat > fdisk/Makemodule.am << EOF' >> util-linux/build.sh
+            echo 'sbin_PROGRAMS += fdisk cfdisk sfdisk' >> util-linux/build.sh
+            echo 'dist_man_MANS += fdisk/fdisk.8 fdisk/cfdisk.8 fdisk/sfdisk.8' >> util-linux/build.sh
+            echo 'fdisk_SOURCES = fdisk/fdisk.c' >> util-linux/build.sh
+            echo 'cfdisk_SOURCES = fdisk/cfdisk.c' >> util-linux/build.sh
+            echo 'sfdisk_SOURCES = fdisk/sfdisk.c' >> util-linux/build.sh
+            echo 'EOF' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo '# Set up build environment' >> util-linux/build.sh
             echo 'export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig' >> util-linux/build.sh
             echo 'export CFLAGS="-I/usr/include/blkid -I/usr/include/mount -I/usr/include/uuid"' >> util-linux/build.sh
             echo 'export LDFLAGS="-L/usr/lib/x86_64-linux-gnu"' >> util-linux/build.sh
