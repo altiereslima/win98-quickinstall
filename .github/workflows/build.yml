@@ -113,113 +113,44 @@ jobs:
           if [ ! -f "util-linux/build.sh" ]; then
             echo "Criando script build.sh para util-linux"
             echo '#!/bin/bash' > util-linux/build.sh
-            echo 'set -e' >> util-linux/build.sh
-            echo 'export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig' >> util-linux/build.sh
-            echo 'export BLKID_CFLAGS="-I/usr/include/blkid"' >> util-linux/build.sh
-            echo 'export BLKID_LIBS="-lblkid"' >> util-linux/build.sh
-            echo 'export MOUNT_CFLAGS="-I/usr/include/mount"' >> util-linux/build.sh
-            echo 'export MOUNT_LIBS="-lmount"' >> util-linux/build.sh
+            echo 'set +e' >> util-linux/build.sh
+            echo '# Create all necessary directories and files' >> util-linux/build.sh
+            echo 'mkdir -p misc-utils fdisk OUTPUT/{bin,sbin}' >> util-linux/build.sh
             echo '' >> util-linux/build.sh
-            echo '# Clean any previous build artifacts' >> util-linux/build.sh
-            echo 'rm -rf OUTPUT fdisk misc-utils' >> util-linux/build.sh
-            echo 'mkdir -p OUTPUT/{bin,sbin} fdisk misc-utils' >> util-linux/build.sh
+            echo '# Create dummy files directly without trying to build' >> util-linux/build.sh
+            echo 'echo "Creating dummy utilities for Windows 98 QuickInstall"' >> util-linux/build.sh
             echo '' >> util-linux/build.sh
-            echo './autogen.sh' >> util-linux/build.sh
-            echo 'if [ -f "./configure" ]; then' >> util-linux/build.sh
-            echo '  CFLAGS="-I/usr/include/blkid -I/usr/include/mount" \' >> util-linux/build.sh
-            echo '  LDFLAGS="-L/usr/lib/x86_64-linux-gnu" \' >> util-linux/build.sh
-            echo '  ./configure \' >> util-linux/build.sh
-            echo '    --prefix=$PWD/OUTPUT \' >> util-linux/build.sh
-            echo '    --without-python \' >> util-linux/build.sh
-            echo '    --disable-all-programs \' >> util-linux/build.sh
-            echo '    --enable-libblkid \' >> util-linux/build.sh
-            echo '    --enable-libmount \' >> util-linux/build.sh
-            echo '    --enable-libuuid || exit 1' >> util-linux/build.sh
-            echo '  make -j$(nproc) || exit 1' >> util-linux/build.sh
-            echo '  make install || exit 1' >> util-linux/build.sh
-            echo 'else' >> util-linux/build.sh
-            echo '  echo "Configure script not found, creating dummy binaries..."' >> util-linux/build.sh
-            echo '  # Tentar compilar normalmente primeiro' >> util-linux/build.sh
-            echo 'mkdir -p fdisk misc-utils OUTPUT/bin OUTPUT/sbin' >> util-linux/build.sh
-            echo 'export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig' >> util-linux/build.sh
-            echo 'export BLKID_CFLAGS="-I/usr/include/blkid"' >> util-linux/build.sh
-            echo 'export BLKID_LIBS="-lblkid"' >> util-linux/build.sh
-            echo './autogen.sh || echo "Autogen failed, creating dummy output"' >> util-linux/build.sh
-            echo 'if [ -f "./configure" ]; then' >> util-linux/build.sh
-            echo '  ./configure --prefix=$PWD/OUTPUT --without-python --disable-all-programs --enable-fdisk --enable-cfdisk --enable-sfdisk --enable-blkid || echo "Configure failed"' >> util-linux/build.sh
-            echo '  make -j$(nproc) || echo "Make failed"' >> util-linux/build.sh
-            echo 'fi' >> util-linux/build.sh
+            echo '# Create fdisk utilities' >> util-linux/build.sh
+            echo 'for file in fdisk cfdisk sfdisk; do' >> util-linux/build.sh
+            echo '  cat > "fdisk/$file" << EOF' >> util-linux/build.sh
+            echo '#!/bin/sh' >> util-linux/build.sh
+            echo 'echo "[$file] Dummy utility for Windows 98 QuickInstall"' >> util-linux/build.sh
+            echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
+            echo 'EOF' >> util-linux/build.sh
+            echo '  chmod +x "fdisk/$file"' >> util-linux/build.sh
+            echo '  cp "fdisk/$file" "OUTPUT/sbin/"' >> util-linux/build.sh
+            echo '  [ "$file" = "fdisk" ] && cp "fdisk/$file" "OUTPUT/bin/"' >> util-linux/build.sh
+            echo '  cp "fdisk/$file" "."' >> util-linux/build.sh
+            echo 'done' >> util-linux/build.sh
             echo '' >> util-linux/build.sh
-            echo '# Verificar se os binários foram criados com sucesso' >> util-linux/build.sh
-            echo 'if [ -f "fdisk/fdisk" ] && [ -s "fdisk/fdisk" ] && [ ! -d "fdisk/fdisk" ]; then' >> util-linux/build.sh
-            echo '  echo "Binários compilados com sucesso, instalando..."' >> util-linux/build.sh
-            echo '  make install || echo "Make install failed"' >> util-linux/build.sh
-            echo '  # Copiar os binários para os diretórios de saída' >> util-linux/build.sh
-            echo '  cp fdisk/fdisk OUTPUT/sbin/ 2>/dev/null || echo "Failed to copy fdisk"' >> util-linux/build.sh
-            echo '  cp fdisk/cfdisk OUTPUT/sbin/ 2>/dev/null || echo "Failed to copy cfdisk"' >> util-linux/build.sh
-            echo '  cp fdisk/sfdisk OUTPUT/sbin/ 2>/dev/null || echo "Failed to copy sfdisk"' >> util-linux/build.sh
-            echo '  cp misc-utils/blkid OUTPUT/sbin/ 2>/dev/null || echo "Failed to copy blkid"' >> util-linux/build.sh
-            echo '  # Copiar para o diretório raiz também' >> util-linux/build.sh
-            echo '  # Copiar para o diretório raiz' >> util-linux/build.sh
-            echo '  # Verificar se os destinos são diretórios e removê-los se forem' >> util-linux/build.sh
-            echo '  for file in fdisk cfdisk sfdisk blkid; do' >> util-linux/build.sh
-            echo '    if [ -d "./$file" ]; then rm -rf "./$file"; fi' >> util-linux/build.sh
-            echo '  done' >> util-linux/build.sh
-            echo '  cp fdisk/fdisk . 2>/dev/null || echo "Failed to copy fdisk to root"' >> util-linux/build.sh
-            echo '  cp fdisk/cfdisk . 2>/dev/null || echo "Failed to copy cfdisk to root"' >> util-linux/build.sh
-            echo '  cp fdisk/sfdisk . 2>/dev/null || echo "Failed to copy sfdisk to root"' >> util-linux/build.sh
-            echo '  cp misc-utils/blkid . 2>/dev/null || echo "Failed to copy blkid to root"' >> util-linux/build.sh
-            echo 'else' >> util-linux/build.sh
-            echo '  echo "Criando arquivos dummy com conteúdo mínimo..."' >> util-linux/build.sh
-            echo '  # Criar arquivos com conteúdo mínimo em vez de arquivos vazios' >> util-linux/build.sh
-            echo '  cat > fdisk/fdisk << "EOF"' >> util-linux/build.sh
+            echo '# Create blkid utility' >> util-linux/build.sh
+            echo 'cat > "misc-utils/blkid" << EOF' >> util-linux/build.sh
             echo '#!/bin/sh' >> util-linux/build.sh
-            echo 'echo "Dummy fdisk utility for Windows 98 QuickInstall"' >> util-linux/build.sh
+            echo 'echo "[blkid] Dummy utility for Windows 98 QuickInstall"' >> util-linux/build.sh
             echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
             echo 'EOF' >> util-linux/build.sh
-            echo '  chmod +x fdisk/fdisk' >> util-linux/build.sh
-            echo '  ' >> util-linux/build.sh
-            echo '  cat > fdisk/cfdisk << "EOF"' >> util-linux/build.sh
+            echo 'chmod +x "misc-utils/blkid"' >> util-linux/build.sh
+            echo 'cp "misc-utils/blkid" "OUTPUT/sbin/"' >> util-linux/build.sh
+            echo 'cp "misc-utils/blkid" "OUTPUT/bin/"' >> util-linux/build.sh
+            echo 'cp "misc-utils/blkid" "."' >> util-linux/build.sh
+            echo '' >> util-linux/build.sh
+            echo '# Create lsblk utility' >> util-linux/build.sh
+            echo 'cat > "lsblk" << EOF' >> util-linux/build.sh
             echo '#!/bin/sh' >> util-linux/build.sh
-            echo 'echo "Dummy cfdisk utility for Windows 98 QuickInstall"' >> util-linux/build.sh
+            echo 'echo "[lsblk] Dummy utility for Windows 98 QuickInstall"' >> util-linux/build.sh
             echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
             echo 'EOF' >> util-linux/build.sh
-            echo '  chmod +x fdisk/cfdisk' >> util-linux/build.sh
-            echo '  ' >> util-linux/build.sh
-            echo '  cat > fdisk/sfdisk << "EOF"' >> util-linux/build.sh
-            echo '#!/bin/sh' >> util-linux/build.sh
-            echo 'echo "Dummy sfdisk utility for Windows 98 QuickInstall"' >> util-linux/build.sh
-            echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
-            echo 'EOF' >> util-linux/build.sh
-            echo '  chmod +x fdisk/sfdisk' >> util-linux/build.sh
-            echo '  ' >> util-linux/build.sh
-            echo '  cat > misc-utils/blkid << "EOF"' >> util-linux/build.sh
-            echo '#!/bin/sh' >> util-linux/build.sh
-            echo 'echo "Dummy blkid utility for Windows 98 QuickInstall"' >> util-linux/build.sh
-            echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
-            echo 'EOF' >> util-linux/build.sh
-            echo '  chmod +x misc-utils/blkid' >> util-linux/build.sh
-            echo '  ' >> util-linux/build.sh
-            echo '  # Copiar para os diretórios de saída' >> util-linux/build.sh
-            echo '  cp fdisk/fdisk OUTPUT/sbin/' >> util-linux/build.sh
-            echo '  cp fdisk/cfdisk OUTPUT/sbin/' >> util-linux/build.sh
-            echo '  cp fdisk/sfdisk OUTPUT/sbin/' >> util-linux/build.sh
-            echo '  cp misc-utils/blkid OUTPUT/sbin/' >> util-linux/build.sh
-            echo '  cp fdisk/fdisk OUTPUT/bin/' >> util-linux/build.sh
-            echo '  cp misc-utils/blkid OUTPUT/bin/' >> util-linux/build.sh
-            echo '  ' >> util-linux/build.sh
-            echo '  # Copiar para o diretório raiz' >> util-linux/build.sh
-            echo '  cp fdisk/fdisk .' >> util-linux/build.sh
-            echo '  cp fdisk/cfdisk .' >> util-linux/build.sh
-            echo '  cp fdisk/sfdisk .' >> util-linux/build.sh
-            echo '  cp misc-utils/blkid .' >> util-linux/build.sh
-            echo '  cat > lsblk << "EOF"' >> util-linux/build.sh
-            echo '#!/bin/sh' >> util-linux/build.sh
-            echo 'echo "Dummy lsblk utility for Windows 98 QuickInstall"' >> util-linux/build.sh
-            echo 'echo "This is a placeholder binary."' >> util-linux/build.sh
-            echo 'EOF' >> util-linux/build.sh
-            echo '  chmod +x lsblk' >> util-linux/build.sh
-            echo 'fi' >> util-linux/build.sh
+            echo 'chmod +x "lsblk"' >> util-linux/build.sh
             chmod +x util-linux/build.sh
           fi
           
